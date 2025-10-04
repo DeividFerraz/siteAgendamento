@@ -1,0 +1,395 @@
+﻿:root {
+    --bg: #f6fffb;
+    --ink: #0b2f21;
+    --muted: #2f6b52;
+    --primary: #16a765;
+    --primary-soft: #6dd8a9;
+    --ring: rgba(45,199,128,.25);
+    --card: #fff;
+    --card-border: rgba(10,61,42,.08);
+    --shadow: 0 20px 50px rgba(10,61,42,.18);
+    --side: #0c1a15;
+    --side-ink: #cfeadd;
+    --side-active: #ffffff;
+}
+
+* {
+    box-sizing: border-box
+}
+
+html, body {
+    height: 100%
+}
+
+body {
+    margin: 0;
+    background: linear-gradient(180deg,#e9fff4 0%, #ffffff 100%);
+    color: var(--ink);
+    font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif;
+}
+
+/* Layout principal */
+.app {
+    display: grid;
+    grid-template-columns: 68px 1fr;
+    min-height: 100vh
+}
+
+/* Sidebar */
+/* Sidebar */
+.sidenav {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--side);
+    color: var(--side-ink);
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+    .sidenav .nav-header {
+        display: flex;
+        justify-content: center;
+        padding: 6px 0 10px;
+    }
+
+    .sidenav .nav-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        overflow: hidden; /* evita deslocar */
+        flex: 1 1 auto;
+    }
+
+    .sidenav .nav-footer { /* empurra pro rodapé */
+        margin-top: auto;
+        padding-top: 8px;
+    }
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 0;
+    color: var(--side-ink);
+    padding: 10px 6px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+
+    .nav-item svg {
+        width: 22px;
+        height: 22px;
+        opacity: .95
+    }
+
+    .nav-item span {
+        font-size: 10.5px; /* menor */
+        letter-spacing: .2px;
+        color: rgba(255,255,255,.92); /* contraste melhor */
+        max-width: 64px;
+        text-align: center; /* não quebrar */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .nav-item.active, .nav-item:hover {
+        background: rgba(255,255,255,.10);
+        color: var(--side-active);
+    }
+
+.spacer {
+    flex: 1
+}
+
+/* Content shell */
+.content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh
+}
+
+/* Topbar */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: #fff6;
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+    .topbar .left {
+        display: flex;
+        align-items: center;
+        gap: 8px
+    }
+
+    .topbar button {
+        border: 1px solid rgba(0,0,0,.12);
+        background: #fff;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 10px;
+        cursor: pointer
+    }
+
+    .topbar .ghost {
+        background: transparent
+    }
+
+.dayLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 220px
+}
+
+    .dayLabel #dayTitle {
+        font-weight: 700
+    }
+
+    .dayLabel small {
+        color: var(--muted)
+    }
+
+.tenant {
+    font-weight: 600
+}
+
+.userMenu {
+    color: #356f58
+}
+
+/* Workspace */
+.workspace {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+    padding: 16px
+}
+
+/* Painéis */
+.panel {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 12px;
+}
+
+.panel-title {
+    font-weight: 700;
+    margin: 4px 6px 10px 6px
+}
+
+/* Mini calendário */
+.miniCal {
+    padding: 8px
+}
+
+    .miniCal .cal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px
+    }
+
+    .miniCal button {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 8px
+    }
+
+    .miniCal .grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px
+    }
+
+    .miniCal .dow {
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted)
+    }
+
+    .miniCal .day {
+        text-align: center;
+        padding: 6px 0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+        .miniCal .day.other {
+            opacity: .35
+        }
+
+        .miniCal .day.today {
+            border: 1px solid var(--primary-soft)
+        }
+
+        .miniCal .day.sel {
+            background: var(--primary);
+            color: #fff
+        }
+
+/* Staff chips */
+.staffList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px
+}
+
+.staff-chip {
+    border: 1px solid rgba(0,0,0,.1);
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    background: #fff;
+    font-size: 13px;
+}
+
+    .staff-chip.active {
+        background: linear-gradient(90deg,var(--primary), #29c57e);
+        color: #fff;
+        border-color: transparent
+    }
+
+/* Grade diária */
+.calendar {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    height: calc(100vh - 140px);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+}
+
+    .calendar .hours {
+        background: #f8fffb;
+        border-right: 1px solid rgba(0,0,0,.06);
+        padding-top: 16px;
+    }
+
+        .calendar .hours .h {
+            height: 80px;
+            padding-right: 8px;
+            text-align: right;
+            color: #6c8f7e;
+            font-size: 12px
+        }
+
+    .calendar .grid {
+        position: relative;
+        overflow: auto;
+        background: linear-gradient(180deg, rgba(0,0,0,.02) 1px, transparent 1px) 0 0/100% 80px;
+    }
+
+.grid .nowline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #ff5252;
+    box-shadow: 0 0 0 2px rgba(255,82,82,.15);
+}
+
+.appt {
+    position: absolute;
+    left: 6%;
+    width: 88%;
+    background: #fff;
+    border: 1.5px solid var(--primary-soft);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.08);
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+    .appt .t {
+        font-weight: 700
+    }
+
+    .appt .s {
+        color: #3b6f59;
+        font-size: 12px
+    }
+
+/* Views alternadas */
+.view.hidden {
+    display: none
+}
+
+/* Settings */
+.settingsList {
+    display: flex;
+    gap: 12px
+}
+
+button.danger {
+    background: #ffe9e9;
+    border: 1px solid #ffc9c9;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer
+}
+
+    button.danger:hover {
+        filter: brightness(0.98)
+    }
+
+body {
+    font-weight: 450
+}
+/* Inter suporta pesos intermediários */
+.panel-title {
+    letter-spacing: .2px
+}
+
+.miniCal .day {
+    font-weight: 500
+}
+
+.appt .t {
+    letter-spacing: .2px
+}
+
+.day-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: linear-gradient(to bottom, #ffffffcc, #ffffffa6);
+    backdrop-filter: blur(4px);
+    padding: 10px 14px;
+    border-radius: 12px;
+    width: max-content;
+    box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    margin: 8px 0 6px 0;
+}
+
+    .day-chip strong {
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .day-chip .muted {
+        color: #6b7280;
+        font-size: 12px;
+    }

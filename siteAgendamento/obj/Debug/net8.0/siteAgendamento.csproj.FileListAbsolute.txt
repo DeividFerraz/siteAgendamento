@@ -1,0 +1,11 @@
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.csproj.AssemblyReference.cache
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.AssemblyInfoInputs.cache
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.AssemblyInfo.cs
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.csproj.CoreCompileInputs.cache
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.RazorAssemblyInfo.cache
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.RazorAssemblyInfo.cs
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net8.0\siteAgendamento.sourcelink.json
