@@ -274,7 +274,8 @@ body {
     border-radius: 16px;
     box-shadow: var(--shadow);
     height: calc(100vh - 140px);
-    overflow: hidden;
+    overflow-y: auto; /* ← agora o QUADRADO rola na vertical */
+    overflow-x: hidden;
     display: grid;
     grid-template-columns: 64px 1fr;
 }
@@ -295,8 +296,9 @@ body {
 
     .calendar .grid {
         position: relative;
-        overflow: auto;
-        background: linear-gradient(180deg, rgba(0,0,0,.02) 1px, transparent 1px) 0 0/100% 80px;
+        overflow: visible; /* ← quem rola é o .calendar */
+        background: linear-gradient(180deg, rgba(0,0,0,.06) 1px, transparent 1px) 0 0 / 100% 80px;
+        min-height: calc(80px * 24); /* garante 24h de conteúdo (00:00–24:00) */
     }
 
 .grid .nowline {
@@ -393,3 +395,355 @@ body {
         color: #6b7280;
         font-size: 12px;
     }
+
+.grid .select-ghost {
+    position: absolute;
+    left: 6%;
+    width: 88%;
+    background: rgba(22,167,101,.12);
+    border: 1.5px dashed var(--primary);
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+/* Handles de redimensionamento nos cards */
+.appt {
+    position: absolute;
+    left: 6%;
+    width: 88%;
+    background: #fff;
+    border: 1.5px solid var(--primary-soft);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.08);
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+    .appt.dragging {
+        opacity: .6
+    }
+
+    .appt .handle {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 8px
+    }
+
+        .appt .handle.top {
+            top: -4px;
+            cursor: n-resize
+        }
+
+        .appt .handle.bot {
+            bottom: -4px;
+            cursor: s-resize
+        }
+
+/* Menu contextual minimalista */
+.ctx {
+    position: fixed;
+    z-index: 50;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.12);
+    padding: 6px
+}
+
+    .ctx button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        background: #fff;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer
+    }
+
+        .ctx button:hover {
+            background: rgba(0,0,0,.04)
+        }
+
+.hidden {
+    display: none
+}
+
+/* FAB como no print (bola branca com +) */
+.fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.06);
+    box-shadow: 0 12px 30px rgba(0,0,0,.12);
+    font-size: 28px;
+    line-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer
+}
+
+.fab-menu {
+    position: fixed;
+    right: 24px;
+    bottom: 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50
+}
+
+    .fab-menu .fab-item {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(0,0,0,.10)
+    }
+
+        .fab-menu .fab-item:hover {
+            filter: brightness(0.98)
+        }
+/* Modal básico */
+.bm-modal.hidden {
+    display: none;
+}
+
+.bm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+}
+
+.bm-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.25);
+    backdrop-filter: blur(2px);
+}
+
+.bm-dialog {
+    position: relative;
+    z-index: 81;
+    width: 520px;
+    max-width: calc(100% - 24px);
+    margin: 8vh auto 0;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.bm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+    .bm-header h3 {
+        margin: 0;
+        font-weight: 700;
+    }
+
+.bm-close {
+    border: 0;
+    background: transparent;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--muted);
+}
+
+.bm-body {
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+}
+
+.bm-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+    .bm-row label {
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .bm-row select {
+        appearance: none;
+        border: 1px solid rgba(0,0,0,.12);
+        border-radius: 10px;
+        padding: 10px 12px;
+        height: 40px;
+        background: #fff;
+    }
+
+.bm-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 16px;
+    border-top: 1px solid rgba(0,0,0,.06);
+}
+
+.bm-btn {
+    border: 1px solid rgba(0,0,0,.12);
+    background: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+    .bm-btn.primary {
+        background: var(--primary);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .bm-btn.ghost {
+        background: #fff;
+    }
+
+/* ===== Modal de agendamento ===== */
+.bm.hidden {
+    display: none;
+}
+
+.bm {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+}
+
+.bm-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.25);
+    backdrop-filter: blur(1.5px);
+}
+
+.bm-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(520px, 92vw);
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.18);
+}
+
+.bm-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+.bm-x {
+    border: 0;
+    background: transparent;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.bm-body {
+    padding: 14px 16px;
+    display: grid;
+    gap: 10px;
+}
+
+.bm-label {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.bm-input {
+    width: 100%;
+    height: 36px;
+    border-radius: 10px;
+    padding: 4px 10px;
+    border: 1px solid rgba(0,0,0,.12);
+    background: #fff;
+}
+
+.bm-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+}
+
+.bm-btn {
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,.12);
+    background: #fff;
+}
+
+    .bm-btn.ghost {
+        background: transparent;
+    }
+
+    .bm-btn.primary {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+    }
+
+/* ===== Card “tag” (placeholder/pendente) ===== */
+.appt {
+    background: #fff;
+}
+    /* base existente */
+    .appt.pending {
+        background: color-mix(in srgb, var(--primary-soft) 22%, white);
+        border-color: var(--primary);
+    }
+/* Bloqueio com tracejado (já suportado no JS via borderStyle) */
+
+/* Faixas fora do horário de funcionamento */
+.grid .offhours {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(11, 47, 33, .10); /* cinza-esverdeado escuro */
+    pointer-events: none; /* NÃO recebe clique, só visual */
+}
+
+/* Mantém a grade horária de 80px/h para o dia todo */
+.calendar .grid {
+    position: relative;
+    overflow: auto;
+    background: linear-gradient(180deg, rgba(0,0,0,.06) 1px, transparent 1px) 0 0 / 100% 80px;
+}
+
+/* Handles de redimensionamento já existem, mas reforço o cursor */
+.appt .handle.top {
+    cursor: n-resize;
+}
+
+.appt .handle.bot {
+    cursor: s-resize;
+}
+
+/* Aparência de pending (já tem no seu css; mantenha) */
+.appt.pending {
+    background: color-mix(in srgb, var(--primary-soft) 22%, white);
+    border-color: var(--primary);
+}

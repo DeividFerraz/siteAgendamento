@@ -12,6 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddControllers();
+
 // JWT
 var jwt = builder.Configuration.GetSection("Jwt");
 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));

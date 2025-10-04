@@ -94,7 +94,16 @@
                         <strong id="chipDate">—</strong>
                         <span id="chipOpenState" class="muted">—</span>
                     </div>
+                    <!-- Ações rápidas -->
+                    <button id="fab" class="fab" aria-label="Ações rápidas" title="Ações rápidas">+</button>
 
+                    <div id="fabMenu" class="fab-menu hidden" role="menu" aria-label="Ações">
+                        <button data-action="new" class="fab-item">Marcar novo horário</button>
+                        <button data-action="block" class="fab-item">Bloquear horário</button>
+                    </div>
+
+                    <!-- Menu contextual (seleção ou card) -->
+                    <div id="ctxMenu" class="ctx hidden" role="menu"></div>
                     <div id="calendar" class="calendar"></div>
                 </main>
             </div>
@@ -118,7 +127,30 @@
             </section>
         </section>
     </div>
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="bm hidden" aria-modal="true" role="dialog">
+        <div class="bm-backdrop"></div>
+        <div class="bm-card" role="document" aria-labelledby="bmTitle">
+            <header class="bm-head">
+                <strong id="bmTitle">Novo agendamento</strong>
+                <button id="bmClose" class="bm-x" aria-label="Fechar">×</button>
+            </header>
 
-    <script src="./js/app.js?v=1"></script>
+            <div class="bm-body">
+                <label class="bm-label" for="bmStart">Início</label>
+                <select id="bmStart" class="bm-input"></select>
+
+                <label class="bm-label" for="bmEnd">Fim</label>
+                <select id="bmEnd" class="bm-input"></select>
+            </div>
+
+            <footer class="bm-foot">
+                <button id="bmCancel" class="bm-btn ghost">Cancelar</button>
+                <button id="bmSave" class="bm-btn primary">Confirmar</button>
+            </footer>
+        </div>
+    </div>
+
+    <script src="./js/app.js?v=4" defer></script>
 </body>
 </html>
