@@ -24,4 +24,9 @@ public class TenantSettings
     public int SlotGranularityMinutes { get; set; } = 10;
     public bool AllowAnonymousAppointments { get; set; } = false;
     public int CancellationWindowHours { get; set; } = 24;
+    public string Timezone { get; internal set; }
+    public string BusinessDays { get; internal set; }
+    public string OpenTime { get; internal set; }
+    public string CloseTime { get; internal set; }
+    public int DefaultAppointmentMinutes { get; internal set; }
 }

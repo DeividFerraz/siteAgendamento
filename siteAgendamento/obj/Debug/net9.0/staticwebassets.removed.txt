@@ -1,2 +1,0 @@
-C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\wwwroot\js\site.js
-C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\wwwroot\js\app.js

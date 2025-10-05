@@ -1,6 +1,7 @@
 ﻿// PATH: wwwroot/js/app.js
 (function () {
-    console.log('APP_JS_BUILD', '2025-10-06-fix-click-menu + revert-offhours + suppress-click-after-drag');
+    console.log('APP_JS_BUILD', '2025-10-06-fix-click-menu + revert-offhours + suppress-click-after-drag'
+        /* [SOREN-MOD:001] add-company-and-availability */, '+ company-config + availability');
 
     // ======= helpers/estado =======
     const token = localStorage.getItem('soren.token');
@@ -20,14 +21,24 @@
         selectedStaffIds: [],
         appts: [],            // {id, start, end, staffId, staffName, client, service, color, kind?, pending?, locked?}
         isAdmin,
+        availability: { freeRanges: [] } // [SOREN-MOD:010] new holder for daily free ranges
     };
 
     // ======= grade/ajuda =======
     let gridMetrics = { startMinutes: 0, endMinutes: 24 * 60, pxPerMinute: 80 / 60 }; // 80px = 1h
     const config = { slotStepMin: 5, defaultDurationMin: 30 };
 
-    const WORK_START = 7 * 60; // 07:00
-    const WORK_END = 20 * 60;  // 20:00
+    /* ===== [SOREN-MOD:020] dynamic business settings (replaces hardcoded WORK_START/END) ===== */
+    const business = {
+        tz: 'America/Sao_Paulo',
+        openMin: 7 * 60,
+        closeMin: 20 * 60,
+        daysOpen: new Set([1, 2, 3, 4, 5]),
+        stepMin: 5,
+        defaultAppointmentMin: 30
+    };
+    function WORK_START() { return business.openMin; }
+    function WORK_END() { return business.closeMin; }
 
     function roundToStep(min) {
         const step = Math.max(1, Number(config.slotStepMin) || 5);
@@ -39,7 +50,12 @@
     }
     function minutesToTop(m) { return (m - gridMetrics.startMinutes) * gridMetrics.pxPerMinute; }
     function minutesToHeight(startM, endM) { return Math.max(22, (endM - startM) * gridMetrics.pxPerMinute); }
-    function withinBusiness(startMin, endMin) { return startMin >= WORK_START && endMin <= WORK_END; }
+    /* [SOREN-MOD:030] uses open days + dynamic open/close */
+    function withinBusiness(startMin, endMin) {
+        const wd = state.date.getDay();
+        if (!business.daysOpen.has(wd)) return false;
+        return startMin >= WORK_START() && endMin <= WORK_END();
+    }
 
     function toLabel(min) {
         const h = Math.floor(min / 60).toString().padStart(2, '0');
@@ -94,38 +110,77 @@
     // seed para o modal (mantém expediente), mas modal lista 00–24
     function buildTimeOptions(rangePref) {
         const step = Math.max(1, Number(config.slotStepMin) || 5);
-        const busy = busyIntervalsForSelectedStaff();
 
-        const starts = [];
-        for (let t = WORK_START; t <= WORK_END - step; t += step) {
-            if (!collides(t, t + step, busy)) starts.push(t);
+        // ocupa dos cards ou invertendo availability
+        let busy = busyIntervalsForSelectedStaff();
+        if (state.availability?.freeRanges?.length) {
+            const invert = (free) => {
+                const start = WORK_START(), end = WORK_END();
+                const ranges = [];
+                let cursor = start;
+                for (const [s, e] of free.sort((a, b) => a[0] - b[0])) {
+                    if (s > cursor) ranges.push([cursor, s]);
+                    cursor = Math.max(cursor, e);
+                }
+                if (cursor < end) ranges.push([cursor, end]);
+                return ranges;
+            };
+            busy = invert(state.availability.freeRanges);
         }
+
+        // [SOREN-PATCH] duração padrão efetiva
+        const defaultLen = Math.max(
+            step,
+            Number(business.defaultAppointmentMin || config.defaultDurationMin || step)
+        );
 
         function endsFrom(startMin) {
             const ends = [];
-            for (let t = startMin + step; t <= WORK_END; t += step) {
-                if (collides(startMin, t, busy)) break;
+            for (let t = startMin + step; t <= WORK_END(); t += step) {
+                if (collides(startMin, t, busy)) break; // bateu em ocupado → para
                 ends.push(t);
             }
             return ends;
         }
 
+        // [SOREN-PATCH] só entra em starts quem comporta a duração padrão (>= defaultLen)
+        const starts = [];
+        for (let t = WORK_START(); t <= WORK_END() - step; t += step) {
+            if (collides(t, t + step, busy)) continue; // já começa batendo
+            const ends = endsFrom(t);
+            if (!ends.length) continue;
+
+            // precisa existir algum fim com pelo menos defaultLen a partir de t
+            if (ends.some(e => (e - t) >= defaultLen)) {
+                starts.push(t);
+            }
+        }
+
+        // semente para o início
         let seedStart = rangePref?.startMin ?? null;
         if (seedStart != null) {
-            seedStart = roundToStep(Math.max(WORK_START, Math.min(seedStart, WORK_END - step)));
-            if (collides(seedStart, seedStart + step, busy)) {
+            seedStart = roundToStep(Math.max(WORK_START(), Math.min(seedStart, WORK_END() - step)));
+            if (!starts.includes(seedStart)) {
                 seedStart = starts.find(s => s >= seedStart) ?? starts[0];
             }
         } else {
-            seedStart = starts[0] ?? WORK_START;
+            seedStart = starts[0] ?? WORK_START();
         }
-        const seedEnds = endsFrom(seedStart);
-        let seedEnd = rangePref?.endMin && rangePref.endMin > seedStart
-            ? roundToStep(Math.min(rangePref.endMin, WORK_END))
-            : (seedEnds[0] ?? (seedStart + step));
-        if (!seedEnds.includes(seedEnd)) seedEnd = seedEnds[0] ?? (seedStart + step);
 
-        return { step, busy, starts, endsFrom, seedStart, seedEnd };
+        // fins a partir do início
+        const seedEnds = endsFrom(seedStart);
+
+        // [SOREN-PATCH] tentar o fim = início + duração padrão; senão, pega o último permitido
+        const desiredEnd = seedStart + defaultLen;
+        let seedEnd = (rangePref?.endMin && rangePref.endMin > seedStart)
+            ? roundToStep(Math.min(rangePref.endMin, WORK_END()))
+            : desiredEnd;
+
+        // se não existe opção >= desiredEnd, usar a última opção válida (garantimos que existe)
+        const firstGte = seedEnds.find(e => e >= desiredEnd);
+        seedEnd = firstGte ?? seedEnds[seedEnds.length - 1];
+
+        return { step, busy, starts, endsFrom, seedStart, seedEnd, defaultLen };
     }
 
     // ======= elementos =======
@@ -418,6 +473,59 @@
         });
     }
 
+    /* ===== [SOREN-MOD:050] Availability (slots:search) ===== */
+    async function loadAvailability() {
+        const d = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate());
+        const from = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0));
+        const to = new Date(from); to.setUTCDate(to.getUTCDate() + 1);
+
+        const staffId = chosenStaffId();
+        const body = {
+            ServiceId: "00000000-0000-0000-0000-000000000000", // ajuste se seu serviço for obrigatório
+            DateRange: { FromUtc: from.toISOString(), ToUtc: to.toISOString() },
+            StaffIds: staffId ? [staffId] : null
+        };
+
+        try {
+            const res = await fetch(`${apiBase}/availability/slots:search`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const slots = await res.json();
+
+            // normalização: converte pontos disponíveis em "faixas livres"
+            const toMin = (iso) => { const x = new Date(iso); return x.getHours() * 60 + x.getMinutes(); };
+            let freeRanges = [];
+
+            if (Array.isArray(slots) && slots.length && ('available' in (slots[0] || {}))) {
+                const step = Math.max(1, Number(config.slotStepMin) || 5);
+                let run = null;
+                for (const s of slots) {
+                    const m = toMin(s.timeUtc || s.time || s.TimeUtc);
+                    if (s.available) {
+                        if (!run) run = [m, m + step]; else run[1] = m + step;
+                    } else if (run) { freeRanges.push(run); run = null; }
+                }
+                if (run) freeRanges.push(run);
+            } else if (slots?.free) {
+                // caso seu service já devolva ranges: [[startIso,endIso],...]
+                freeRanges = slots.free.map(([a, b]) => [toMin(a), toMin(b)]);
+            }
+
+            // limita ao expediente
+            state.availability = {
+                freeRanges: freeRanges
+                    .map(([s, e]) => [Math.max(WORK_START(), s), Math.min(WORK_END(), e)])
+                    .filter(([s, e]) => e > s)
+            };
+        } catch (e) {
+            console.warn('loadAvailability()', e);
+            state.availability = { freeRanges: [] };
+        }
+    }
+
     // ======= Render grade do dia =======
     function renderDay() {
         if (!els.calendar) return;
@@ -432,8 +540,9 @@
         const chipOpenState = document.getElementById('chipOpenState');
         if (chipDate) chipDate.textContent = els.dayTitle.textContent;
 
+        /* [SOREN-MOD:060] aberto/fechado via business.daysOpen */
         const wd = state.date.getDay();
-        const isOpen = !(wd === 0 || wd === 6);
+        const isOpen = business.daysOpen.has(wd);
         if (chipOpenState) chipOpenState.textContent = isOpen ? 'Aberto' : 'Fechado';
         if (els.openState) els.openState.textContent = isOpen ? 'Aberto' : 'Fechado';
 
@@ -463,13 +572,13 @@
         const ohTop = document.createElement('div');
         ohTop.className = 'offhours';
         ohTop.style.top = `${minutesToTop(0)}px`;
-        ohTop.style.height = `${minutesToHeight(0, WORK_START)}px`;
+        ohTop.style.height = `${minutesToHeight(0, WORK_START())}px`;
         grid.appendChild(ohTop);
 
         const ohBottom = document.createElement('div');
         ohBottom.className = 'offhours';
-        ohBottom.style.top = `${minutesToTop(WORK_END)}px`;
-        ohBottom.style.height = `${minutesToHeight(WORK_END, 24 * 60)}px`;
+        ohBottom.style.top = `${minutesToTop(WORK_END())}px`;
+        ohBottom.style.height = `${minutesToHeight(WORK_END(), 24 * 60)}px`;
         grid.appendChild(ohBottom);
 
         const now = new Date();
@@ -541,7 +650,7 @@
         if (isSameDay(now, state.date)) {
             targetMin = now.getHours() * 60 + now.getMinutes();
         } else {
-            targetMin = WORK_START;
+            targetMin = WORK_START();
         }
         const targetTop = minutesToTop(targetMin);
         const offset = Math.max(0, targetTop - (els.calendar.clientHeight * 0.33));
@@ -581,6 +690,7 @@
             if (rebuildMini) renderMiniCal(state.date);
             if (!state.staff.length) await loadStaff();
             await loadAppointments();
+            await loadAvailability(); // [SOREN-MOD:070] plug availability before rendering
             renderDay();
             wireFab();
             wireLegacyFabMenu();
@@ -596,6 +706,74 @@
     }
 
     // ======= branding + settings =======
+    /* [SOREN-MOD:080] new: loadCompany compõe tudo p/ front (cores, horários, dias, granularidade, duração) */
+    function hhmmToMin(hhmm) {
+        const [h, m] = String(hhmm || '').split(':').map(Number);
+        return (isFinite(h) ? h : 0) * 60 + (isFinite(m) ? (m || 0) : 0);
+    }
+
+    /* [SOREN-FIX:102] aceita dias como números ou strings (PT/EN), devolvendo Set de 0..6 (Dom=0) */
+    function normalizeDays(days) {
+        if (!Array.isArray(days)) return new Set([1, 2, 3, 4, 5]); // padrão: seg-sex
+        const map = {
+            // EN
+            'sun': 0, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6,
+            // PT curto
+            'dom': 0, 'seg': 1, 'ter': 2, 'qua': 3, 'qui': 4, 'sex': 5, 'sáb': 6, 'sab': 6,
+            // PT longo
+            'domingo': 0, 'segunda': 1, 'segunda-feira': 1, 'terca': 2, 'terça': 2, 'terça-feira': 2,
+            'quarta': 3, 'quarta-feira': 3, 'quinta': 4, 'quinta-feira': 4, 'sexta': 5, 'sexta-feira': 5,
+            'sabado': 6, 'sábado': 6
+        };
+        const out = new Set();
+        for (const d of days) {
+            if (typeof d === 'number' && d >= 0 && d <= 6) { out.add(d); continue; }
+            const k = String(d || '').trim().toLowerCase();
+            if (k in map) out.add(map[k]);
+        }
+        return out.size ? out : new Set([1, 2, 3, 4, 5]);
+    }
+
+    async function loadCompany() {
+        try {
+            // [SOREN-FIX:103] ler SETTINGS do tenant
+            const s = await apiGet(`/settings`);
+
+            // timezone (fallback)
+            business.tz = s.timezone || s.Timezone || business.tz;
+
+            // horários
+            business.openMin = hhmmToMin(s.openTime || s.OpenTime || '07:00');
+            business.closeMin = hhmmToMin(s.closeTime || s.CloseTime || '20:00');
+
+            // dias abertos
+            const days = s.businessDays || s.BusinessDays || [];
+            business.daysOpen = normalizeDays(days);
+
+            // granularidade & duração padrão
+            business.stepMin = Number(s.slotGranularityMinutes || s.SlotGranularityMinutes || business.stepMin);
+            business.defaultAppointmentMin = Number(s.defaultAppointmentMinutes || s.DefaultAppointmentMinutes || business.defaultAppointmentMin);
+            config.slotStepMin = business.stepMin;
+            config.defaultDurationMin = business.defaultAppointmentMin;
+
+            // cores (deixe aqui por compat; seu /branding já é carregado em loadTenantConfig)
+            try {
+                const b = await apiGet(`/branding`);
+                const primary = b.primaryColor || b.Primary || b.primary || '#16a765';
+                const secondary = b.secondaryColor || b.Secondary || b.secondary || '#6dd8a9';
+                const ink = b.tertiaryColor || b.Tertiary || b.ink || '#0b2f21';
+                applyBranding(primary, secondary, ink);
+            } catch { /* ignora se falhar */ }
+
+            // nome da empresa (se veio junto em settings)
+            if ((s.companyName || s.CompanyName) && els.tenantName) {
+                els.tenantName.textContent = s.companyName || s.CompanyName;
+            }
+        } catch (e) {
+            console.warn('loadCompany()', e);
+        }
+    }
+
     async function loadTenantConfig() {
         try {
             const b = await apiGet(`/branding`);
@@ -603,14 +781,42 @@
             const secondary = b.secondaryColor || b.SecondaryColor || b.secondary || b.Secondary || '#6dd8a9';
             const ink = b.tertiaryColor || b.TertiaryColor || b.ink || b.Ink || '#0b2f21';
             applyBranding(primary, secondary, ink);
-            const slot1 = b.slotGranularityMinutes || b.SlotGranularityMinutes;
-            if (slot1) config.slotStepMin = Number(slot1) || config.slotStepMin;
-            if (b.companyName && els.tenantName) els.tenantName.textContent = b.companyName;
+
+            if (b.companyName && els.tenantName) {
+                els.tenantName.textContent = b.companyName;
+            }
         } catch { }
+
         try {
             const s = await apiGet(`/settings`);
+
+            // [SOREN-FIX:011] — aplicar TODOS os campos novos vindos da API
+            const hhmmToMin = (hhmm) => {
+                const [h, m] = String(hhmm || '00:00').split(':').map(Number);
+                return (isFinite(h) ? h : 0) * 60 + (isFinite(m) ? m : 0);
+            };
+
+            // step (granularidade)
             const slot2 = s.slotGranularityMinutes || s.SlotGranularityMinutes || s.slot_step_minutes;
             if (slot2) config.slotStepMin = Number(slot2) || config.slotStepMin;
+
+            // duração padrão
+            const def = Number(s.defaultAppointmentMinutes || s.DefaultAppointmentMinutes);
+            if (def) {
+                business.defaultAppointmentMin = def;
+                config.defaultDurationMin = def;
+            }
+
+            // expediente
+            business.openMin = hhmmToMin(s.openTime || s.OpenTime || '07:00');
+            business.closeMin = hhmmToMin(s.closeTime || s.CloseTime || '20:00');
+
+            // dias abertos (Mon..Sun → 0..6)
+            business.daysOpen = mapDaysToSet(s.businessDays || s.BusinessDays || []);
+
+            // timezone (se quiser usar em exibições)
+            business.tz = s.timezone || s.Timezone || business.tz;
+
         } catch { }
     }
     function applyBranding(primary, secondary, ink) {
@@ -867,7 +1073,7 @@
     function openBookingDialog(kind, rangePref, editInfo) {
         if (!els.bookingModal) return;
 
-        const { step, busy, seedStart, seedEnd } = buildTimeOptions(rangePref);
+        const { step, busy, starts, endsFrom, seedStart, defaultLen } = buildTimeOptions(rangePref);
 
         const modalBody = els.bookingModal.querySelector('.bm-body');
         if (modalBody) {
@@ -875,66 +1081,103 @@
             modalBody.style.overflowY = 'auto';
         }
 
-        if (els.bmTitle) els.bmTitle.textContent =
-            editInfo ? 'Editar horário' :
-                (kind === 'block' ? 'Novo bloqueio de horário' :
-                    (kind === 'timeoff' ? 'Adicionar folga' : 'Novo agendamento'));
+        if (els.bmTitle) {
+            els.bmTitle.textContent =
+                editInfo ? 'Editar horário' :
+                    (kind === 'block' ? 'Novo bloqueio de horário' :
+                        (kind === 'timeoff' ? 'Adicionar folga' : 'Novo agendamento'));
+        }
 
+        // ---- INÍCIOS: apenas horários que comportam a duração padrão inteira ----
         const makeStartOptions = () => {
             let html = '';
-            for (let t = 0; t <= 24 * 60 - step; t += step) {
-                const disabled = (t < WORK_START || t > WORK_END - step) || collides(t, t + step, busy);
-                html += `<option value="${t}" ${disabled ? 'disabled' : ''}>${toLabel(t)}</option>`;
+            for (let t = WORK_START(); t <= WORK_END() - step; t += step) {
+                // precisa caber "defaultLen" sem colidir e sem ultrapassar o expediente
+                if (t + defaultLen <= WORK_END() && !collides(t, t + defaultLen, busy)) {
+                    html += `<option value="${t}">${toLabel(t)}</option>`;
+                }
             }
             return html;
         };
+
+        // Finais válidos (lista crescente), para um dado início
         const endsFromAny = (startMin) => {
-            const arr = [];
-            for (let t = startMin + step; t <= 24 * 60; t += step) {
-                const isOff = t > WORK_END || startMin < WORK_START;
-                const dis = isOff || collides(startMin, t, busy);
-                arr.push({ t, dis });
+            const vals = [];
+            if (startMin < WORK_START() || startMin >= WORK_END()) return vals;
+            for (let t = startMin + step; t <= WORK_END(); t += step) {
                 if (collides(startMin, t, busy)) break;
+                vals.push(t);
             }
-            return arr;
+            return vals;
         };
 
-        els.bmStart.innerHTML = makeStartOptions();
-        els.bmStart.value = String(seedStart);
+        // Se não couber nenhum início válido, aborta com aviso
+        const anyStartHtml = makeStartOptions();
+        if (!anyStartHtml) {
+            alert('Não há horários disponíveis que comportem a duração padrão neste dia.');
+            return;
+        }
+
+        els.bmStart.innerHTML = anyStartHtml;
+
+        // escolhe um seedStart que esteja na lista; se não, usa o primeiro válido
+        const firstValidStart = Number((els.bmStart.querySelector('option') || {}).value);
+        const hasSeed = [...els.bmStart.options].some(o => Number(o.value) === seedStart);
+        els.bmStart.value = String(hasSeed ? seedStart : firstValidStart);
 
         function refreshEnds() {
             const s = Number(els.bmStart.value);
-            const list = endsFromAny(s);
-            els.bmEnd.innerHTML = list.map(x => `<option value="${x.t}" ${x.dis ? 'disabled' : ''}>${toLabel(x.t)}</option>`).join('');
-            const chosen = list.find(x => x.t >= seedEnd && !x.dis)?.t ?? list.find(x => !x.dis)?.t;
-            if (chosen != null) els.bmEnd.value = String(chosen);
+            const list = endsFromAny(s);                  // [minutos]
+            if (!list.length) {
+                els.bmEnd.innerHTML = `<option value="">—</option>`;
+                els.bmEnd.value = '';
+                return;
+            }
+
+            // popula as opções
+            els.bmEnd.innerHTML = list.map(t => `<option value="${t}">${toLabel(t)}</option>`).join('');
+
+            // destino desejado: início + duração padrão (alinhado ao step p/ cima)
+            const desired = Math.ceil((s + defaultLen) / step) * step;
+
+            // pega o primeiro fim >= desired; se não existir, usa o último possível
+            const chosen = list.find(t => t >= desired) ?? list[list.length - 1];
+            els.bmEnd.value = String(chosen);
         }
+
         refreshEnds();
         els.bmStart.onchange = refreshEnds;
 
-        // se for edição, garantir seleção inicial corresponde ao card
+        // ---- Edição: preservar duração original quando possível ----
         if (editInfo) {
             const current = getApptById(editInfo.id);
             if (current) {
                 const s = toMinFromDate(current.start);
                 const e = toMinFromDate(current.end);
-                els.bmStart.value = String(s);
-                const list = endsFromAny(s);
-                els.bmEnd.innerHTML = list.map(x => `<option value="${x.t}" ${x.dis ? 'disabled' : ''}>${toLabel(x.t)}</option>`).join('');
-                const okEnd = list.find(x => x.t === e && !x.dis)?.t ?? list.find(x => !x.dis)?.t;
-                if (okEnd != null) els.bmEnd.value = String(okEnd);
+                // move o início para o mais próximo válido >= s (ou primeiro)
+                const startOptions = [...els.bmStart.options].map(o => Number(o.value));
+                const startCandidate = startOptions.includes(s) ? s : (startOptions.find(x => x >= s) ?? startOptions[0]);
+                els.bmStart.value = String(startCandidate);
+
+                const list = endsFromAny(startCandidate);
+                els.bmEnd.innerHTML = list.map(t => `<option value="${t}">${toLabel(t)}</option>`).join('');
+                // se o fim original couber, mantém; senão tenta (novo início + defaultLen); senão o último
+                const desired = Math.ceil((startCandidate + defaultLen) / step) * step;
+                const chosen = list.includes(e) ? e : (list.find(t => t >= desired) ?? list[list.length - 1]);
+                els.bmEnd.value = String(chosen);
             }
         }
 
         function close() { els.bookingModal.classList.add('hidden'); }
         els.bmCancel.onclick = close;
         els.bmClose.onclick = close;
-        els.bookingModal.querySelector('.bm-backdrop').onclick = close;
+        const backdrop = els.bookingModal.querySelector('.bm-backdrop');
+        if (backdrop) backdrop.onclick = close;
 
         els.bmSave.onclick = () => {
             const s = Number(els.bmStart.value);
             const e = Number(els.bmEnd.value);
-            if (!s || !e || e <= s) return;
+            if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return;
             if (!withinBusiness(s, e)) { alert('Fora do horário de funcionamento da empresa.'); return; }
 
             if (editInfo?.id) {
@@ -992,7 +1235,7 @@
         els.fab.onclick = () => {
             const now = new Date();
             const nowM = now.getHours() * 60 + now.getMinutes();
-            const startMin = Math.max(WORK_START, Math.min(roundToStep(nowM), WORK_END - config.defaultDurationMin));
+            const startMin = Math.max(WORK_START(), Math.min(roundToStep(nowM), WORK_END() - config.defaultDurationMin));
             const endMin = startMin + config.defaultDurationMin;
             openBookingDialog('appt', { startMin, endMin });
         };
@@ -1013,7 +1256,7 @@
         function nowRange() {
             const now = new Date();
             const nowM = now.getHours() * 60 + now.getMinutes();
-            const startMin = Math.max(WORK_START, Math.min(roundToStep(nowM), WORK_END - config.defaultDurationMin));
+            const startMin = Math.max(WORK_START(), Math.min(roundToStep(nowM), WORK_END() - config.defaultDurationMin));
             return { startMin, endMin: startMin + config.defaultDurationMin };
         }
 
@@ -1038,6 +1281,7 @@
         const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); start.setMinutes(startMin);
         const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); end.setMinutes(endMin);
         console.log('create appointment', { start, end, staffId: chosenStaffId() });
+        // TODO: integrar com rota real de criação quando você enviar o path
     }
     async function apiCreateBlock(startMin, endMin, kind) {
         const d = state.date;
@@ -1056,7 +1300,8 @@
     }
 
     // ======= INIT =======
-    loadTenantConfig().finally(() => {
+    /* [SOREN-MOD:090] load company (expediente, dias, cores, step, duração) antes de renderizar */
+    Promise.all([loadCompany(), loadTenantConfig()]).finally(() => {
         lockBodyScrollAndSize();
         renderMiniCal(state.date);
         refresh();

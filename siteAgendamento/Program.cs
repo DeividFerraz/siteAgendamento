@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+ï»¿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using siteAgendamento.Api;
 using siteAgendamento.Application.Services;
@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddControllers();
+
 
 // JWT
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -40,7 +40,7 @@ builder.Services.AddAuthorization(options =>
     // Para "ManageOwnCalendar" validaremos no endpoint (checa claim staff_id).
 });
 
-// Services de aplicação
+// Services de aplicaÃ§Ã£o
 builder.Services.AddSingleton(new JwtTokenService(jwt["Issuer"]!, jwt["Audience"]!, key, int.Parse(jwt["ExpiresMinutes"]!)));
 builder.Services.AddScoped<PasswordHasherService>();
 builder.Services.AddScoped<AvailabilityService>();
@@ -65,7 +65,7 @@ app.UseSwaggerUI();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Mapear módulos (organizados por arquivo)
+// Mapear mÃ³dulos (organizados por arquivo)
 AuthEndpoints.Map(app);
 TenantEndpoints.Map(app);
 StaffEndpoints.Map(app);

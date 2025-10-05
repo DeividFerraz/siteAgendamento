@@ -15,7 +15,13 @@ public class AvailabilityService
 
     public async Task<List<Slot>> FindSlotsAsync(Guid tenantId, Guid serviceId, DateTime fromUtc, DateTime toUtc, IEnumerable<Guid>? staffIds = null)
     {
-        var service = await _db.Services.FirstAsync(s => s.Id == serviceId && s.TenantId == tenantId);
+        var service = await _db.Services
+        .AsNoTracking()
+        .FirstOrDefaultAsync(s => s.Id == serviceId && s.TenantId == tenantId);
+        if (service is null)
+        {
+            return new List<Slot>();
+        }
         var staffQuery = _db.Staffs.Where(s => s.TenantId == tenantId && s.Active);
         if (staffIds != null && staffIds.Any()) staffQuery = staffQuery.Where(s => staffIds.Contains(s.Id));
         var staffs = await staffQuery.ToListAsync();

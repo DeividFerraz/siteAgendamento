@@ -233,6 +233,28 @@
         }
       }
     },
+    "/api/v1/{tenantSlug}/company": {
+      "get": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/v1/{tenantSlug}/staff": {
       "post": {
         "tags": [
@@ -1360,6 +1382,30 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "timezone": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessDays": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "openTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "closeTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultAppointmentMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -1608,6 +1654,30 @@
             "nullable": true
           },
           "cancellationWindowHours": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessDays": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "openTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "closeTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultAppointmentMinutes": {
             "type": "integer",
             "format": "int32",
             "nullable": true

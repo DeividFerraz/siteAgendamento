@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("siteAgendamento")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f0996ee920c7bc77088ba76e47084d81d2ae6655")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+422522167bdf0fda52abbe4409d23d06792cd4d5")]
 [assembly: System.Reflection.AssemblyProductAttribute("siteAgendamento")]
 [assembly: System.Reflection.AssemblyTitleAttribute("siteAgendamento")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

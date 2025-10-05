@@ -485,6 +485,28 @@
     ]
   },
   {
+    "ContainingType": "siteAgendamento.Api.TenantEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_4",
+    "RelativePath": "api/v1/{tenantSlug}/company",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
     "Method": "\u003CMap\u003Eb__0_5",
     "RelativePath": "api/v1/{tenantSlug}/me/agenda",

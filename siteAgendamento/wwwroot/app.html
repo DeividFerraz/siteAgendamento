@@ -8,6 +8,7 @@
     <!-- Inter como no login -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./css/app.css?v=1">
+    <link rel="stylesheet" href="./css/confi.css">
 </head>
 <body>
     <div id="app" class="app">
@@ -118,10 +119,84 @@
 
             <!-- View Settings -->
             <section id="settingsView" class="view hidden">
-                <div class="panel">
+                <div class="panel settings-card">
                     <div class="panel-title">Configurações</div>
-                    <div class="settingsList">
-                        <button id="btnLogout" class="danger">Sair</button>
+
+                    <!-- Identidade: só visualizar nome/Email -->
+                    <div class="settings-grid">
+                        <div class="settings-field">
+                            <label>Nome da empresa</label>
+                            <input id="setCompanyName" type="text" class="ro" readonly>
+                            <small class="muted">Somente leitura por enquanto.</small>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Email (dono)</label>
+                            <input id="setOwnerEmail" type="email" class="ro" readonly>
+                            <small class="muted">Somente leitura por enquanto.</small>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Logo (URL)</label>
+                            <input id="setLogoUrl" type="url" placeholder="https://...">
+                            <small class="muted">Cole a URL do logo. Upload direto fica para a próxima etapa.</small>
+                        </div>
+
+                        <div class="settings-field">
+                            <label>Alterar senha</label>
+                            <button id="btnChangePassword" class="ghost">Trocar senha</button>
+                            <small class="muted">O botão está pronto; backend entra depois.</small>
+                        </div>
+                    </div>
+
+                    <hr class="settings-sep" />
+
+                    <!-- Horários de funcionamento -->
+                    <div class="settings-block">
+                        <div class="settings-block-title">Horários de Funcionamento</div>
+                        <div class="settings-grid">
+                            <div class="settings-field">
+                                <label>Fuso horário</label>
+                                <input id="setTimezone" type="text" placeholder="America/Sao_Paulo">
+                                <small class="muted">Ex.: America/Sao_Paulo</small>
+                            </div>
+
+                            <div class="settings-field">
+                                <label>Abertura</label>
+                                <select id="setOpenTime"></select>
+                            </div>
+
+                            <div class="settings-field">
+                                <label>Fechamento</label>
+                                <select id="setCloseTime"></select>
+                            </div>
+
+                            <div class="settings-field">
+                                <label>Intervalo entre horários (min)</label>
+                                <input id="setSlotStep" type="number" min="1" step="1" placeholder="5">
+                            </div>
+
+                            <div class="settings-field">
+                                <label>Duração padrão do agendamento (min)</label>
+                                <input id="setDefaultLen" type="number" min="5" step="5" placeholder="60">
+                            </div>
+                        </div>
+
+                        <div class="settings-days">
+                            <span>Dias abertos:</span>
+                            <label><input type="checkbox" data-day="MON">Seg</label>
+                            <label><input type="checkbox" data-day="TUE">Ter</label>
+                            <label><input type="checkbox" data-day="WED">Qua</label>
+                            <label><input type="checkbox" data-day="THU">Qui</label>
+                            <label><input type="checkbox" data-day="FRI">Sex</label>
+                            <label><input type="checkbox" data-day="SAT">Sáb</label>
+                            <label><input type="checkbox" data-day="SUN">Dom</label>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button id="btnSaveSettings" class="primary">Salvar alterações</button>
+                            <button id="btnLogout" class="danger">Sair</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -151,6 +226,8 @@
         </div>
     </div>
 
-    <script src="./js/app.js?v=4" defer></script>
+    <script src="./js/app.js" defer></script>
+    <script src="./js/confi.js?v=1"></script>
+
 </body>
 </html>

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using siteAgendamento.Application.Services;
+using siteAgendamento.Domain.Catalog;
 using siteAgendamento.Domain.Identity;
 using siteAgendamento.Domain.Staffing;
 using siteAgendamento.Domain.Tenants;
@@ -32,7 +33,14 @@ public static class AuthEndpoints
                 {
                     SlotGranularityMinutes = dto.Settings?.SlotGranularityMinutes ?? 10,
                     AllowAnonymousAppointments = dto.Settings?.AllowAnonymousAppointments ?? false,
-                    CancellationWindowHours = dto.Settings?.CancellationWindowHours ?? 24
+                    CancellationWindowHours = dto.Settings?.CancellationWindowHours ?? 24,
+
+                    // NOVOS
+                    Timezone = dto.Settings?.Timezone ?? "America/Sao_Paulo",
+                    BusinessDays = string.Join(",", dto.Settings?.BusinessDays ?? new[] { "1", "2", "3", "4", "5" }),
+                    OpenTime = dto.Settings?.OpenTime ?? "09:00",
+                    CloseTime = dto.Settings?.CloseTime ?? "18:00",
+                    DefaultAppointmentMinutes = dto.Settings?.DefaultAppointmentMinutes ?? 60
                 },
                 Branding = new TenantBranding
                 {
@@ -63,6 +71,19 @@ public static class AuthEndpoints
             // vincula staff ao UserTenant
             var ut = await db.UserTenants.FirstAsync(x => x.UserId == user.Id && x.TenantId == tenant.Id);
             ut.StaffId = staff.Id;
+            await db.SaveChangesAsync();
+
+            var defaultService = new Service
+            {
+                TenantId = tenant.Id,
+                Name = "Serviço padrão",
+                DurationMin = dto.Settings?.DefaultAppointmentMinutes ?? 60,      // pega do payload novo
+                BufferBeforeMin = 0,
+                BufferAfterMin = 0,
+                Capacity = 1,
+                PriceCents = 0
+            };
+            db.Services.Add(defaultService);
             await db.SaveChangesAsync();
 
             var token = jwt.CreateToken(user.Id, user.Email, tenant.Id, "Owner", staff.Id);
@@ -134,14 +155,23 @@ public static class AuthEndpoints
     }
 
     public record RegisterTenantDto(
-        string Slug,
-        string CompanyName,
-        AdminDto Admin,
-        BrandingDto? Branding,
-        SettingsDto? Settings);
+                    string Slug,
+                    string CompanyName,
+                    AdminDto Admin,
+                    BrandingDto? Branding,
+                    SettingsDto? Settings);
     public record AdminDto(string Name, string Email, string? Password);
     public record BrandingDto(string? LogoUrl, string? Primary, string? Secondary, string? Tertiary);
-    public record SettingsDto(int? SlotGranularityMinutes, bool? AllowAnonymousAppointments, int? CancellationWindowHours);
+    public record SettingsDto(
+        int? SlotGranularityMinutes, 
+        bool? AllowAnonymousAppointments, 
+        int? CancellationWindowHours, 
+        string? Timezone,                  // ex: "America/Sao_Paulo"
+        string[]? BusinessDays,            // ex: ["1","2","3","4","5"]  // 0=Dom .. 6=Sáb
+        string? OpenTime,                  // "09:00"
+        string? CloseTime,                 // "18:00"
+        int? DefaultAppointmentMinutes
+        );
     public record LoginDto(string Email, string Password);
     public record GlobalLoginDto(string Tenant, string Email, string Password);
 }

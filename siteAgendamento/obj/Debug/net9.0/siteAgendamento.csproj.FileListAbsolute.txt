@@ -163,7 +163,6 @@ C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\co
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\0q144n3w2z-c2tiyv64ts.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\w1kgv3i1zk-61n19gt1b8.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\uvucc4xkdq-47b5gunoo6.gz
-C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\1qwkbp6tk7-xtxxf3hu2r.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\lj9y7jafc2-agp80tu62r.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\n83r57h5g8-st1cbwfwo5.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\f7y1sqdsnl-unj9p35syc.gz
@@ -234,6 +233,8 @@ C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\re
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\siteAgendamento.pdb
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\siteAgendamento.genruntimeconfig.cache
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\ref\siteAgendamento.dll
-C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\8e5jqjjr93-5895h3sdg0.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\eewxsa44t6-30rbdwy635.gz
-C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\0o7xr8fca7-a9ddsevr8p.gz
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\fi4jdu4b44-8fghegvwmy.gz
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\8e5jqjjr93-kqhb6r3psp.gz
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\yf4ebong5a-rsd15ib8is.gz
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\0o7xr8fca7-xg7h9pkqnq.gz
