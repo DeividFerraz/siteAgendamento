@@ -508,7 +508,7 @@
   },
   {
     "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_5",
+    "Method": "\u003CMap\u003Eb__0_12",
     "RelativePath": "api/v1/{tenantSlug}/me/agenda",
     "HttpMethod": "GET",
     "IsController": false,
@@ -540,7 +540,7 @@
   },
   {
     "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_2",
+    "Method": "\u003CMap\u003Eb__0_5",
     "RelativePath": "api/v1/{tenantSlug}/me/staff",
     "HttpMethod": "GET",
     "IsController": false,
@@ -820,6 +820,38 @@
         "Name": "tenantSlug",
         "Type": "System.String",
         "IsRequired": true
+      },
+      {
+        "Name": "active",
+        "Type": "System.Nullable\u00601[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_2",
+    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": [
@@ -833,6 +865,65 @@
   {
     "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
     "Method": "\u003CMap\u003Eb__0_3",
+    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}",
+    "HttpMethod": "PUT",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "siteAgendamento.Api.StaffEndpoints\u002BUpdateStaffDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_4",
+    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}",
+    "HttpMethod": "DELETE",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_10",
     "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/availability",
     "HttpMethod": "GET",
     "IsController": false,
@@ -859,7 +950,7 @@
   },
   {
     "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_4",
+    "Method": "\u003CMap\u003Eb__0_11",
     "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/availability",
     "HttpMethod": "POST",
     "IsController": false,
@@ -878,6 +969,124 @@
       {
         "Name": "dto",
         "Type": "siteAgendamento.Api.StaffEndpoints\u002BStaffAvailabilityDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_6",
+    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/branding",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_7",
+    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/branding",
+    "HttpMethod": "PUT",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "siteAgendamento.Api.StaffEndpoints\u002BPutStaffBrandingDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_8",
+    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/settings",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_9",
+    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/settings",
+    "HttpMethod": "PUT",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "siteAgendamento.Api.StaffEndpoints\u002BStaffSettingsOverrideDto",
         "IsRequired": true
       }
     ],

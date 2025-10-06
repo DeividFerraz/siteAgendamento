@@ -298,6 +298,112 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/{tenantSlug}/staff/{staffId}": {
+      "get": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.UpdateStaffDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -322,6 +428,146 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/{tenantSlug}/staff/{staffId}/branding": {
+      "get": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.PutStaffBrandingDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/{tenantSlug}/staff/{staffId}/settings": {
+      "get": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staffId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.StaffSettingsOverrideDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Success"
@@ -1560,9 +1806,37 @@
             "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.UserDto"
           },
           "staff": {
-            "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.StaffDto"
+            "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.NewStaffDto"
           },
           "role": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "siteAgendamento.Api.StaffEndpoints.NewStaffDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "siteAgendamento.Api.StaffEndpoints.PutStaffBrandingDto": {
+        "type": "object",
+        "properties": {
+          "photoUrl": {
             "type": "string",
             "nullable": true
           }
@@ -1587,7 +1861,42 @@
         },
         "additionalProperties": false
       },
-      "siteAgendamento.Api.StaffEndpoints.StaffDto": {
+      "siteAgendamento.Api.StaffEndpoints.StaffSettingsOverrideDto": {
+        "type": "object",
+        "properties": {
+          "slotGranularityMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "defaultAppointmentMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessDays": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "openTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "closeTime": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "siteAgendamento.Api.StaffEndpoints.UpdateStaffDto": {
         "type": "object",
         "properties": {
           "displayName": {
@@ -1595,6 +1904,34 @@
             "nullable": true
           },
           "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "bioSet": {
+            "type": "boolean"
+          },
+          "active": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.UpdateStaffUserDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "siteAgendamento.Api.StaffEndpoints.UpdateStaffUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPassword": {
             "type": "string",
             "nullable": true
           }
@@ -1612,7 +1949,7 @@
             "type": "string",
             "nullable": true
           },
-          "tempPassword": {
+          "password": {
             "type": "string",
             "nullable": true
           }
