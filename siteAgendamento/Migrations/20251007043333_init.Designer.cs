@@ -12,8 +12,8 @@ using siteAgendamento.Infrastructure;
 namespace siteAgendamento.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251005203119_inittres")]
-    partial class inittres
+    [Migration("20251007043333_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -34,6 +34,9 @@ namespace siteAgendamento.Migrations
                     b.Property<Guid?>("ClientId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ClientName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ClientType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -48,6 +51,10 @@ namespace siteAgendamento.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("GuestContactJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Notes")

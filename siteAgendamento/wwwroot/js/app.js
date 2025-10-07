@@ -1,6 +1,6 @@
 ﻿// PATH: wwwroot/js/app.js
 (function () {
-    console.log('APP_JS_BUILD', '2025-10-07 per-staff settings + owner-only company edits');
+    console.log('APP_JS_BUILD', '2025-10-08 fix tz + azul nos cards + bloqueio sem cliente + availability/day');
 
     // ======= sessão/estado =======
     const token = localStorage.getItem('soren.token');
@@ -9,24 +9,21 @@
     const myStaffId = localStorage.getItem('soren.staff_id') || null;
 
     const isOwner = role === 'owner';
-    const isAdmin = role === 'owner' || role === 'admin'; // admin normal ainda é admin na UI
-    const canManageCompany = isOwner; // **só o dono** enxerga/edita “Empresa”
+    const isAdmin = role === 'owner' || role === 'admin';
+    const canManageCompany = isOwner;
 
-    if (!token || !tenant) {
-        window.location.href = '/login.html';
-        return;
-    }
+    if (!token || !tenant) { window.location.href = '/login.html'; return; }
 
     const state = {
         date: new Date(),
         staff: [],
         selectedStaffIds: [],
-        appts: [],                 // {id, start, end, staffId, staffName, ...}
+        appts: [], // {id,start,end,staffId,clientFirstName,clientLastName,client,label,color,kind,...}
         isAdmin,
-        availability: { freeRanges: [] },
+        availability: { freeRanges: [], userOnline: true },
 
-        tenantSettings: null,      // /settings (empresa)
-        staffSettingsMap: new Map()// staffId -> settings individuais (efetivos)
+        tenantSettings: null,
+        staffSettingsMap: new Map()
     };
 
     // ======= grade/ajuda =======
@@ -44,14 +41,8 @@
     const WORK_START = () => business.openMin;
     const WORK_END = () => business.closeMin;
 
-    function roundToStep(min) {
-        const step = Math.max(1, Number(config.slotStepMin) || 5);
-        return Math.round(min / step) * step;
-    }
-    function yToMinutes(y) {
-        const m = gridMetrics.startMinutes + (y / gridMetrics.pxPerMinute);
-        return Math.min(gridMetrics.endMinutes, Math.max(gridMetrics.startMinutes, roundToStep(m)));
-    }
+    function roundToStep(min) { const step = Math.max(1, Number(config.slotStepMin) || 5); return Math.round(min / step) * step; }
+    function yToMinutes(y) { const m = gridMetrics.startMinutes + (y / gridMetrics.pxPerMinute); return Math.min(gridMetrics.endMinutes, Math.max(gridMetrics.startMinutes, roundToStep(m))); }
     const minutesToTop = (m) => (m - gridMetrics.startMinutes) * gridMetrics.pxPerMinute;
     const minutesToHeight = (a, b) => Math.max(22, (b - a) * gridMetrics.pxPerMinute);
 
@@ -64,28 +55,31 @@
     const toMinFromDate = (d) => d.getHours() * 60 + d.getMinutes();
     const isSameDay = (a, b) => a.toDateString() === b.toDateString();
 
-    // ======= placeholders locais =======
-    function dayKey(date) {
-        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
-        return `${tenant}::${y}-${m}-${dd}`;
-    }
-    function loadLocalPlaceholders(date) { try { return JSON.parse(localStorage.getItem(`soren.local_appts::${dayKey(date)}`) || '[]'); } catch { return []; } }
-    function saveLocalPlaceholders(date, items) { localStorage.setItem(`soren.local_appts::${dayKey(date)}`, JSON.stringify(items || [])); }
-    function upsertLocalPlaceholder(date, item) {
-        const items = loadLocalPlaceholders(date);
+    // ======= placeholders locais (por staff) =======
+    function ymd(date) { const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+    function dayKey(date, staffId = chosenStaffId()) { return `${tenant}::${staffId || 'none'}::${ymd(date)}`; }
+    function loadLocalPlaceholders(date, staffId = chosenStaffId()) { try { return JSON.parse(localStorage.getItem(`soren.local_appts::${dayKey(date, staffId)}`) || '[]'); } catch { return []; } }
+    function saveLocalPlaceholders(date, items, staffId = chosenStaffId()) { localStorage.setItem(`soren.local_appts::${dayKey(date, staffId)}`, JSON.stringify(items || [])); }
+    function upsertLocalPlaceholder(date, item, staffId = chosenStaffId()) {
+        const items = loadLocalPlaceholders(date, staffId);
         const i = items.findIndex(x => x.id === item.id);
         if (i >= 0) items[i] = item; else items.push(item);
-        saveLocalPlaceholders(date, items);
+        saveLocalPlaceholders(date, items, staffId);
     }
-    function removeLocalPlaceholder(date, id) { saveLocalPlaceholders(date, loadLocalPlaceholders(date).filter(x => x.id !== id)); }
+    function removeLocalPlaceholder(date, id, staffId = chosenStaffId()) {
+        saveLocalPlaceholders(date, loadLocalPlaceholders(date, staffId).filter(x => x.id !== id), staffId);
+    }
 
-    function busyIntervalsForSelectedStaff() {
+    function busyIntervalsForSelectedStaff(excludeId) {
         const chosen = chosenStaffId();
         const ranges = state.appts
-            .filter(a => !chosen || a.staffId === chosen)
+            .filter(a =>
+                (!chosen || a.staffId === chosen) &&
+                (!excludeId || String(a.id) !== String(excludeId))
+            )
             .map(a => [toMinFromDate(a.start), toMinFromDate(a.end)])
             .sort((a, b) => a[0] - b[0]);
+
         const merged = [];
         for (const r of ranges) {
             if (!merged.length || r[0] > merged.at(-1)[1]) merged.push([...r]);
@@ -93,12 +87,19 @@
         }
         return merged;
     }
+
     const collides = (s, e, busy) => busy.some(([a, b]) => !(e <= a || s >= b));
+    const formatClientName = (first, last, fallback) => {
+        const f = (first || '').trim(), l = (last || '').trim();
+        const name = `${f}${f && l ? ' ' : ''}${l}`;
+        return name || (fallback || 'Esporádico');
+    };
 
     // ======= opções de tempo p/ modal =======
     function buildTimeOptions(rangePref) {
         const step = Math.max(1, Number(config.slotStepMin) || 5);
-        let busy = busyIntervalsForSelectedStaff();
+        const excludeId = rangePref?.excludeId || null;
+        let busy = busyIntervalsForSelectedStaff(excludeId);
 
         if (state.availability?.freeRanges?.length) {
             const invert = (free) => {
@@ -111,10 +112,7 @@
         }
 
         const defaultLen = Math.max(step, Number(business.defaultAppointmentMin || config.defaultDurationMin || step));
-        const endsFrom = (startMin) => {
-            const ends = []; for (let t = startMin + step; t <= WORK_END(); t += step) { if (collides(startMin, t, busy)) break; ends.push(t); }
-            return ends;
-        };
+        const endsFrom = (startMin) => { const ends = []; for (let t = startMin + step; t <= WORK_END(); t += step) { if (collides(startMin, t, busy)) break; ends.push(t); } return ends; };
 
         const starts = [];
         for (let t = WORK_START(); t <= WORK_END() - step; t += step) {
@@ -126,12 +124,25 @@
         let seedStart = rangePref?.startMin ?? (starts[0] ?? WORK_START());
         seedStart = Math.max(WORK_START(), Math.min(seedStart, WORK_END() - step));
         if (!starts.includes(seedStart)) seedStart = starts.find(s => s >= seedStart) ?? starts[0];
-
-        const seedEnds = endsFrom(seedStart);
-        const desiredEnd = seedStart + defaultLen;
+        const seedEnds = endsFrom(seedStart); const desiredEnd = seedStart + defaultLen;
         const seedEnd = seedEnds.find(e => e >= desiredEnd) ?? seedEnds.at(-1);
-
         return { step, busy, starts, endsFrom, seedStart, seedEnd, defaultLen };
+    }
+
+    function isRangeAllowed(startMin, endMin, excludeId, mode = 'appt') {
+        if (!withinBusiness(startMin, endMin)) return false;
+
+        // Para agendamento normal, precisa estar dentro do "free" calculado
+        if (mode === 'appt' && Array.isArray(state.availability?.freeRanges) && state.availability.freeRanges.length) {
+            const insideFree = state.availability.freeRanges.some(([s, e]) => startMin >= s && endMin <= e);
+            if (!insideFree) return false;
+        }
+
+        // Não pode colidir com outros compromissos/bloqueios
+        const busy = busyIntervalsForSelectedStaff(excludeId);
+        if (collides(startMin, endMin, busy)) return false;
+
+        return true;
     }
 
     // ======= elementos =======
@@ -335,7 +346,7 @@
             fromBackend = normalizeAppts(data);
         } catch (_) {
             try {
-                const dateParam = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const dateParam = ymd(d);
                 const data = await apiGet(`/appointments/day?date=${dateParam}${staffParam}`); fromBackend = normalizeAppts(data);
             } catch {
                 try {
@@ -346,9 +357,7 @@
             }
         }
 
-        const locals = loadLocalPlaceholders(state.date).map(p => ({ ...p, start: new Date(p.start), end: new Date(p.end) }));
-        const map = new Map();[...fromBackend, ...locals].forEach(a => map.set(String(a.id), a));
-        state.appts = [...map.values()];
+        state.appts = fromBackend;
     }
 
     function normalizeAppts(raw) {
@@ -358,16 +367,33 @@
             const end = new Date(a.endUtc || a.EndUtc || a.end || a.End);
             const staffId = a.staffId || a.StaffId || myStaffId || null;
             const staff = state.staff.find(s => s.id === staffId);
+
+            // tente extrair guest (pode vir como objeto ou como json string)
+            let guest = a.guest || a.Guest;
+            const guestJson = a.guestContactJson || a.GuestContactJson;
+            if (!guest && typeof guestJson === 'string') { try { guest = JSON.parse(guestJson); } catch { } }
+
+            const first = guest?.firstName || guest?.FirstName || a.client?.firstName || a.ClientFirstName || '';
+            const last = guest?.lastName || guest?.LastName || a.client?.lastName || a.ClientLastName || '';
+            const displayClient = a.clientName || a.ClientName || formatClientName(first, last, '');
+
+            // cores: azul p/ agendamento ; cinza p/ bloqueio/folga
+            const isAppt = (a.kind || a.Kind || '').toString().toLowerCase() === 'appt';
+            const color = isAppt ? '#2196f3' : '#90a4ae';
+
             return {
                 id: a.id || a.Id || `appt-${i}`,
                 start, end,
-                staffId, staffName: staff ? staff.name : (a.staffName || a.StaffName || ''),
-                client: a.clientName || a.ClientName || a.client?.name || '',
+                staffId,
+                staffName: staff ? staff.name : (a.staffName || a.StaffName || ''),
+                clientFirstName: first || '',
+                clientLastName: last || '',
+                client: displayClient || 'Esporádico',
                 service: a.serviceName || a.ServiceName || '',
-                color: staff?.color || '#7ee2b3',
+                color,
                 kind: (a.kind || a.Kind || undefined),
                 pending: !!(a.pending || a.Pending),
-                locked: !!(a.locked || a.Locked)
+                locked: !!(a.locked || a.Kind === 'block' || a.Kind === 'timeoff')
             };
         });
     }
@@ -375,47 +401,18 @@
     // ======= Availability =======
     async function loadAvailability() {
         const d = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate());
-        const from = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0));
-        const to = new Date(from); to.setUTCDate(to.getUTCDate() + 1);
-
         const staffId = chosenStaffId();
-        const body = {
-            ServiceId: "00000000-0000-0000-0000-000000000000",
-            DateRange: { FromUtc: from.toISOString(), ToUtc: to.toISOString() },
-            StaffIds: staffId ? [staffId] : null
-        };
+        if (!staffId) { state.availability = { freeRanges: [], userOnline: false }; return; }
 
         try {
-            const res = await fetch(`${apiBase}/availability/slots:search`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            if (!res.ok) throw new Error(await res.text());
-            const slots = await res.json();
-
+            const isoDate = ymd(d);
+            const res = await apiGet(`/availability/day?staffId=${encodeURIComponent(staffId)}&date=${encodeURIComponent(isoDate)}`);
             const toMin = (iso) => { const x = new Date(iso); return x.getHours() * 60 + x.getMinutes(); };
-            let freeRanges = [];
-
-            if (Array.isArray(slots) && slots.length && ('available' in (slots[0] || {}))) {
-                const step = Math.max(1, Number(config.slotStepMin) || 5);
-                let run = null;
-                for (const s of slots) {
-                    const m = toMin(s.timeUtc || s.time || s.TimeUtc);
-                    if (s.available) { if (!run) run = [m, m + step]; else run[1] = m + step; }
-                    else if (run) { freeRanges.push(run); run = null; }
-                }
-                if (run) freeRanges.push(run);
-            } else if (slots?.free) {
-                freeRanges = slots.free.map(([a, b]) => [toMin(a), toMin(b)]);
-            }
-
-            state.availability = {
-                freeRanges: freeRanges.map(([s, e]) => [Math.max(WORK_START(), s), Math.min(WORK_END(), e)]).filter(([s, e]) => e > s)
-            };
+            const freeRanges = Array.isArray(res.free) ? res.free.map(([a, b]) => [toMin(a), toMin(b)]) : [];
+            state.availability = { freeRanges, userOnline: !!res.userOnline };
         } catch (e) {
             console.warn('loadAvailability()', e);
-            state.availability = { freeRanges: [] };
+            state.availability = { freeRanges: [], userOnline: true };
         }
     }
 
@@ -434,17 +431,13 @@
 
         const wd = state.date.getDay();
         const isOpen = business.daysOpen.has(wd);
-        chipOpenState && (chipOpenState.textContent = isOpen ? 'Aberto' : 'Fechado');
-        els.openState && (els.openState.textContent = isOpen ? 'Aberto' : 'Fechado');
+        const openText = isOpen ? (state.availability.userOnline ? 'Aberto (online)' : 'Aberto') : 'Fechado';
+        chipOpenState && (chipOpenState.textContent = openText);
+        els.openState && (els.openState.textContent = openText);
 
         const hoursCol = document.createElement('div');
         hoursCol.className = 'hours';
-        for (let h = 0; h <= 23; h++) {
-            const div = document.createElement('div');
-            div.className = 'h';
-            div.textContent = `${String(h).padStart(2, '0')}:00`;
-            hoursCol.appendChild(div);
-        }
+        for (let h = 0; h <= 23; h++) { const div = document.createElement('div'); div.className = 'h'; div.textContent = `${String(h).padStart(2, '0')}:00`; hoursCol.appendChild(div); }
 
         const grid = document.createElement('div'); grid.className = 'grid';
         gridMetrics = { startMinutes: 0, endMinutes: 24 * 60, pxPerMinute: 80 / 60 };
@@ -466,10 +459,36 @@
             const card = document.createElement('div'); card.className = 'appt';
             a.locked && card.classList.add('locked'); a.pending && card.classList.add('pending');
             card.style.top = `${minutesToTop(sM)}px`; card.style.height = `${minutesToHeight(sM, eM)}px`;
-            card.style.borderColor = a.pending ? 'var(--primary)' : (a.color || '#7ee2b3');
+
+            // Azul para agendamento, cinza para bloqueio/folga
+            const isAppt = (a.kind || '').toString().toLowerCase() === 'appt';
+            const border = isAppt ? '#2196f3' : '#90a4ae';
+            const bg = isAppt ? '#e3f2fd' : '#eceff1';
+            card.style.borderColor = border;
+            card.style.backgroundColor = bg;
             card.style.borderStyle = a.kind === 'block' ? 'dashed' : 'solid';
-            card.innerHTML = `<div class="t">${a.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — ${a.end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
-                              <div class="s">${escapeHtml(a.client || (a.pending ? (a.kind === 'block' ? 'Bloqueio (pendente)' : 'Agendamento (pendente)') : '—'))}${a.staffName ? ` • ${escapeHtml(a.staffName)}` : ''}</div>`;
+
+            // >>>>> layout responsivo
+            const heightPx = minutesToHeight(sM, eM);
+            const compact = heightPx < 52;
+            const timeHtml = `${a.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — ${a.end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+            const clientLabel = formatClientName(a.clientFirstName, a.clientLastName, a.client);
+
+            if (compact) {
+                card.innerHTML = `
+                  <div class="row" style="display:flex;gap:6px;align-items:center;white-space:nowrap;overflow:hidden;">
+                    <div class="t" style="flex:0 0 auto;">${timeHtml}</div>
+                    <div class="c" style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(clientLabel)}</div>
+                  </div>
+                  <div class="f" style="display:none;"></div>`;
+            } else {
+                card.innerHTML = `
+                  <div class="t">${timeHtml}</div>
+                  <div class="c" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(clientLabel)}</div>
+                  <div class="f" style="min-height:6px;"></div>`;
+            }
+            // <<<<<
+
             card.dataset.apptId = String(a.id || `appt-${sM}-${eM}`); card.dataset.startMin = String(sM); card.dataset.endMin = String(eM);
             if (!a.locked) { const hTop = document.createElement('div'); hTop.className = 'handle top'; const hBot = document.createElement('div'); hBot.className = 'handle bot'; card.appendChild(hTop); card.appendChild(hBot); }
             grid.appendChild(card);
@@ -502,7 +521,6 @@
     const pickColor = (i) => (['#2dc780', '#64b5f6', '#ffb74d', '#ba68c8', '#4db6ac', '#7986cb', '#81c784', '#e57373', '#4dd0e1'])[i % 9];
     function chosenStaffId() {
         if (state.selectedStaffIds.length === 1) return state.selectedStaffIds[0];
-        // **se não for dono**, priorize a própria agenda
         if (!canManageCompany && myStaffId) return myStaffId;
         if (state.staff.length) return state.staff[0].id;
         return null;
@@ -523,9 +541,7 @@
         const staffId = chosenStaffId();
         let staffSettings = null;
 
-        // **não-dono** sempre usa settings de staff; Dono pode usar empresa ou staff (se selecionar 1)
         const shouldUseStaff = !canManageCompany || (canManageCompany && state.selectedStaffIds.length === 1);
-
         if (shouldUseStaff && staffId) {
             if (!state.staffSettingsMap.has(staffId)) {
                 try { state.staffSettingsMap.set(staffId, await apiGet(`/staff/${encodeURIComponent(staffId)}/settings`) || {}); }
@@ -535,7 +551,6 @@
         }
 
         const eff = buildEffectiveConfig(state.tenantSettings, staffSettings);
-
         business.tz = eff.timezone || business.tz;
         business.openMin = hhmmToMin(eff.openTime || '07:00');
         business.closeMin = hhmmToMin(eff.closeTime || '20:00');
@@ -546,7 +561,7 @@
         config.slotStepMin = business.stepMin;
         config.defaultDurationMin = business.defaultAppointmentMin;
 
-        await loadBrandingOnce(); // GET /branding (empresa) para cores — liberado para todos
+        await loadBrandingOnce();
     }
 
     function buildEffectiveConfig(company, staff) {
@@ -562,7 +577,7 @@
         };
     }
 
-    // Branding só para aplicar cores (GET liberado)
+    // Branding
     let brandingLoaded = false;
     async function loadBrandingOnce() {
         if (brandingLoaded) return;
@@ -585,8 +600,13 @@
         const s = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); s.setMinutes(startMin);
         const e = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); e.setMinutes(endMin);
         const item = state.appts.find(a => String(a.id) === String(id)); if (item) { item.start = s; item.end = e; }
-        if (String(id).startsWith('temp-')) { const local = loadLocalPlaceholders(state.date); const li = local.find(x => x.id === id); if (li) { li.start = s.toISOString(); li.end = e.toISOString(); upsertLocalPlaceholder(state.date, li); } }
+        if (String(id).startsWith('temp-')) {
+            const staffId = chosenStaffId();
+            const local = loadLocalPlaceholders(state.date, staffId);
+            const li = local.find(x => x.id === id); if (li) { li.start = s.toISOString(); li.end = e.toISOString(); upsertLocalPlaceholder(state.date, li, staffId); }
+        }
     }
+
     function wireGridInteractions(grid) {
         const scroller = els.calendar;
 
@@ -637,11 +657,41 @@
                 const ns = Number(card.dataset.startMin), ne = Number(card.dataset.endMin); if (!withinBusiness(ns, ne)) card.classList.add('invalid'); else card.classList.remove('invalid');
             };
             const onUp = async () => {
-                grid.removeEventListener('mousemove', onMove); grid.removeEventListener('mouseup', onUp); card.classList.remove('dragging');
-                const id = card.dataset.apptId || null; const ns = Number(card.dataset.startMin), ne = Number(card.dataset.endMin);
-                if (!withinBusiness(ns, ne)) { applyGhost(card, sM0, eM0); card.classList.remove('invalid'); suppressClickAfterDrag = didDrag; drag = null; return; }
-                if (didDrag && (ns !== sM0 || ne !== eM0)) { updateApptInStateAndLocal(id, ns, ne); await apiUpdateAppointment(id, ns, ne); renderDay(); suppressClickAfterDrag = true; drag = null; return; }
-                suppressClickAfterDrag = false; drag = null;
+                grid.removeEventListener('mousemove', onMove);
+                grid.removeEventListener('mouseup', onUp);
+                card.classList.remove('dragging');
+
+                const id = card.dataset.apptId || null;
+                const ns = Number(card.dataset.startMin), ne = Number(card.dataset.endMin);
+
+                if (!withinBusiness(ns, ne)) {
+                    applyGhost(card, sM0, eM0);
+                    card.classList.remove('invalid');
+                    suppressClickAfterDrag = didDrag;
+                    drag = null;
+                    return;
+                }
+
+                if (didDrag && (ns !== sM0 || ne !== eM0)) {
+                    try {
+                        await apiUpdateAppointment(id, ns, ne);
+                        await refresh(false);
+                        suppressClickAfterDrag = true;
+                    } catch (e) {
+                        // volta visualmente ao estado anterior caso a API rejeite (ex.: conflito)
+                        applyGhost(card, sM0, eM0);
+                        card.classList.add('invalid');
+                        setTimeout(() => card.classList.remove('invalid'), 900);
+                        alert((e && e.message) ? `Não foi possível mover/redimensionar: ${e.message}` : 'Erro ao salvar.');
+                        suppressClickAfterDrag = true;
+                    } finally {
+                        drag = null;
+                    }
+                    return;
+                }
+
+                suppressClickAfterDrag = false;
+                drag = null;
             };
             grid.addEventListener('mousemove', onMove); grid.addEventListener('mouseup', onUp);
         });
@@ -656,7 +706,7 @@
     // ======= menus / modal =======
     function openActionMenu(x, y, range) {
         const menu = els.ctx; if (!menu) return;
-        menu.innerHTML = `<button data-act="new">Novo agendamento</button><button data-act="block">Novo bloqueio de horário</button><button data-act="timeoff">Adicionar folga</button>`;
+        menu.innerHTML = `<button data-act="new">Novo agendamento</button><button data-act="block">Bloqueio de horário</button><button data-act="timeoff">Adicionar folga</button>`;
         menu.style.left = `${x}px`; menu.style.top = `${y}px`; menu.classList.remove('hidden');
         menu.querySelectorAll('button').forEach(btn => btn.onclick = () => { menu.classList.add('hidden'); const act = btn.dataset.act; if (act === 'new') openBookingDialog('appt', range); else if (act === 'block') openBookingDialog('block', range); else openBookingDialog('timeoff', range); });
         window.addEventListener('click', (ev) => { if (!ev.target.closest('#ctxMenu')) menu.classList.add('hidden'); }, { once: true });
@@ -665,7 +715,11 @@
         const menu = els.ctx; if (!menu) return;
         menu.innerHTML = `<button data-act="edit">Editar horário</button><button data-act="del">Excluir</button>`;
         menu.style.left = `${x}px`; menu.style.top = `${y}px`; menu.classList.remove('hidden');
-        menu.querySelector('[data-act="edit"]').onclick = () => { menu.classList.add('hidden'); const startMin = toMinFromDate(appt.start), endMin = toMinFromDate(appt.end); openBookingDialog(appt.kind || 'appt', { startMin, endMin }, { id: String(appt.id) }); };
+        menu.querySelector('[data-act="edit"]').onclick = () => {
+            menu.classList.add('hidden');
+            const startMin = toMinFromDate(appt.start), endMin = toMinFromDate(appt.end);
+            openBookingDialog(appt.kind || 'appt', { startMin, endMin, excludeId: String(appt.id) }, { id: String(appt.id) });
+        };
         menu.querySelector('[data-act="del"]').onclick = () => {
             menu.classList.add('hidden'); const id = String(appt.id);
             if (id.startsWith('temp-')) { state.appts = state.appts.filter(a => String(a.id) !== id); removeLocalPlaceholder(state.date, id); renderDay(); }
@@ -674,22 +728,48 @@
         window.addEventListener('click', (ev) => { if (!ev.target.closest('#ctxMenu')) menu.classList.add('hidden'); }, { once: true });
     }
 
+    // garante campos extras no modal (staff + cliente)
+    function ensureBookingExtraFields(modal) {
+        const body = modal.querySelector('.bm-body') || modal;
+        let ext = body.querySelector('#bmExt');
+        if (!ext) {
+            ext = document.createElement('div');
+            ext.id = 'bmExt';
+            ext.style.marginTop = '8px';
+            ext.innerHTML = `
+              <div style="display:grid;gap:8px;">
+                <div id="bmStaffWrap" style="display:none;">
+                  <label style="font-size:.85rem;opacity:.8;display:block;margin:2px 0 4px;">Colaborador</label>
+                  <select id="bmStaff" style="width:100%;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;"></select>
+                </div>
+                <div id="bmClientWrap">
+                  <label style="font-size:.85rem;opacity:.8;display:block;margin:2px 0 4px;">Cliente</label>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <input id="bmClientFirst" placeholder="Nome"  style="width:100%;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;">
+                    <input id="bmClientLast"  placeholder="Sobrenome" style="width:100%;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;">
+                  </div>
+                </div>
+              </div>`;
+            body.appendChild(ext);
+        }
+        return {
+            staffWrap: ext.querySelector('#bmStaffWrap'),
+            staffSel: ext.querySelector('#bmStaff'),
+            clientWrap: ext.querySelector('#bmClientWrap'),
+            firstInp: ext.querySelector('#bmClientFirst'),
+            lastInp: ext.querySelector('#bmClientLast')
+        };
+    }
+
     function openBookingDialog(kind, rangePref, editInfo) {
         const modal = els.bookingModal; if (!modal) return;
         const { step, busy, seedStart, defaultLen } = buildTimeOptions(rangePref);
 
         const modalBody = modal.querySelector('.bm-body'); if (modalBody) { modalBody.style.maxHeight = '60vh'; modalBody.style.overflowY = 'auto'; }
-        els.bmTitle && (els.bmTitle.textContent = editInfo ? 'Editar horário' : (kind === 'block' ? 'Novo bloqueio de horário' : (kind === 'timeoff' ? 'Adicionar folga' : 'Novo agendamento')));
+        els.bmTitle && (els.bmTitle.textContent = editInfo ? 'Editar horário' : (kind === 'block' ? 'Bloqueio de horário' : (kind === 'timeoff' ? 'Adicionar folga' : 'Novo agendamento')));
 
-        const makeStartOptions = () => {
-            let html = ''; for (let t = WORK_START(); t <= WORK_END() - step; t += step) if (t + defaultLen <= WORK_END() && !collides(t, t + defaultLen, busy)) html += `<option value="${t}">${toLabel(t)}</option>`;
-            return html;
-        };
-        const endsFromAny = (startMin) => {
-            const vals = []; if (startMin < WORK_START() || startMin >= WORK_END()) return vals;
-            for (let t = startMin + step; t <= WORK_END(); t += step) { if (collides(startMin, t, busy)) break; vals.push(t); }
-            return vals;
-        };
+        const makeStartOptions = () => { let html = ''; for (let t = WORK_START(); t <= WORK_END() - step; t += step) if (t + defaultLen <= WORK_END() && !collides(t, t + defaultLen, busy)) html += `<option value="${t}">${toLabel(t)}</option>`; return html; };
+        const endsFromAny = (startMin) => { const vals = []; if (startMin < WORK_START() || startMin >= WORK_END()) return vals; for (let t = startMin + step; t <= WORK_END(); t += step) { if (collides(startMin, t, busy)) break; vals.push(t); } return vals; };
 
         const anyStartHtml = makeStartOptions(); if (!anyStartHtml) { alert('Não há horários disponíveis que comportem a duração padrão neste dia.'); return; }
         els.bmStart.innerHTML = anyStartHtml;
@@ -698,45 +778,125 @@
         els.bmStart.value = String(hasSeed ? seedStart : firstValidStart);
 
         function refreshEnds() {
-            const s = Number(els.bmStart.value); const list = endsFromAny(s); if (!list.length) { els.bmEnd.innerHTML = '<option value="">—</option>'; els.bmEnd.value = ''; return; }
-            els.bmEnd.innerHTML = list.map(t => `<option value="${t}">${toLabel(t)}</option>`).join(''); const desired = Math.ceil((s + defaultLen) / step) * step; els.bmEnd.value = String(list.find(t => t >= desired) ?? list.at(-1));
+            const s = Number(els.bmStart.value); const list = endsFromAny(s);
+            if (!list.length) { els.bmEnd.innerHTML = '<option value="">—</option>'; els.bmEnd.value = ''; return; }
+            els.bmEnd.innerHTML = list.map(t => `<option value="${t}">${toLabel(t)}</option>`).join('');
+            const desired = Math.ceil((s + defaultLen) / step) * step; els.bmEnd.value = String(list.find(t => t >= desired) ?? list.at(-1));
         }
         refreshEnds(); els.bmStart.onchange = refreshEnds;
 
+        // ------- campos extras: staff + cliente -------
+        const { staffWrap, staffSel, clientWrap, firstInp, lastInp } = ensureBookingExtraFields(modal);
+        if (isAdmin) {
+            staffWrap.style.display = '';
+            staffSel.innerHTML = state.staff.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+            const presetStaffId = editInfo ? (getApptById(editInfo.id)?.staffId || chosenStaffId()) : chosenStaffId();
+            staffSel.value = String(presetStaffId);
+        } else {
+            staffWrap.style.display = 'none';
+        }
+
+        // cliente: visível somente para agendamento normal
+        clientWrap.style.display = (kind === 'appt') ? '' : 'none';
+
         if (editInfo) {
-            const current = getApptById(editInfo.id); if (current) {
-                const s = toMinFromDate(current.start), e = toMinFromDate(current.end); const options = [...els.bmStart.options].map(o => Number(o.value)); const cand = options.includes(s) ? s : (options.find(x => x >= s) ?? options[0]); els.bmStart.value = String(cand);
-                const list = endsFromAny(cand); els.bmEnd.innerHTML = list.map(t => `<option value="${t}">${toLabel(t)}</option>`).join(''); const desired = Math.ceil((cand + defaultLen) / step) * step; els.bmEnd.value = String(list.includes(e) ? e : (list.find(t => t >= desired) ?? list.at(-1)));
+            const current = getApptById(editInfo.id);
+            if (current) {
+                const s = toMinFromDate(current.start), e = toMinFromDate(current.end); const options = [...els.bmStart.options].map(o => Number(o.value));
+                const cand = options.includes(s) ? s : (options.find(x => x >= s) ?? options[0]); els.bmStart.value = String(cand);
+                const list = endsFromAny(cand); els.bmEnd.innerHTML = list.map(t => `<option value="${t}">${toLabel(t)}</option>`).join('');
+                const desired = Math.ceil((cand + defaultLen) / step) * step; els.bmEnd.value = String(list.includes(e) ? e : (list.find(t => t >= desired) ?? list.at(-1)));
+                firstInp.value = current.clientFirstName || (current.client && current.client !== 'Esporádico' ? current.client.split(' ')[0] : 'Esporádico');
+                lastInp.value = current.clientLastName || '';
             }
+        } else {
+            firstInp.value = 'Esporádico'; lastInp.value = '';
         }
 
         const close = () => modal.classList.add('hidden');
         els.bmCancel.onclick = close; els.bmClose.onclick = close; const backdrop = modal.querySelector('.bm-backdrop'); backdrop && (backdrop.onclick = close);
 
-        els.bmSave.onclick = () => {
-            const s = Number(els.bmStart.value), e = Number(els.bmEnd.value); if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return;
-            if (!withinBusiness(s, e)) { alert('Fora do horário de funcionamento da empresa.'); return; }
-            if (editInfo?.id) { updateApptInStateAndLocal(editInfo.id, s, e); apiUpdateAppointment(editInfo.id, s, e).finally(() => renderDay()); }
-            else { createPlaceholder(kind, s, e); }
-            close();
-        };
+        // 1) SUBSTITUA INTEIRO o handler de salvar do modal (els.bmSave.onclick) por este:
+        els.bmSave.onclick = async () => {
+            const s = Number(els.bmStart.value), e = Number(els.bmEnd.value);
+            if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return;
 
+            const staffId = isAdmin ? (staffSel.value || chosenStaffId()) : chosenStaffId();
+            const firstName = (firstInp.value || '').trim() || 'Esporádico';
+            const lastName = (lastInp.value || '').trim();
+            const excludeId = editInfo?.id || null;
+
+            // valida: expediente + disponibilidade + sem colisão (lado cliente)
+            if (!isRangeAllowed(s, e, excludeId)) {
+                alert('Horário indisponível (fora do expediente, sem disponibilidade ou conflita com outro horário).');
+                return;
+            }
+
+            try {
+                if (editInfo?.id) {
+                    await apiUpdateAppointment(editInfo.id, s, e, {
+                        staffId,
+                        clientName: `${firstName}${lastName ? ' ' : ''}${lastName}`.trim() || 'Esporádico'
+                    });
+                } else {
+                    if (kind === 'block' || kind === 'timeoff') {
+                        await apiCreateBlock(s, e, kind, { staffId });
+                    } else {
+                        await apiCreateAppointment(s, e, { staffId, firstName, lastName });
+                    }
+                }
+                await refresh(false);
+            } finally {
+                modal.classList.add('hidden');
+            }
+        };
         modal.classList.remove('hidden');
     }
 
-    function createPlaceholder(kind, startMin, endMin) {
+    function createPlaceholder(kind, startMin, endMin, details = {}) {
         if (!withinBusiness(startMin, endMin)) return;
-        const d = state.date; const s = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); s.setMinutes(startMin); const e = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); e.setMinutes(endMin);
-        const staffId = chosenStaffId(); const staff = state.staff.find(x => x.id === staffId);
-        const temp = { id: `temp-${Date.now()}`, start: s, end: e, staffId, staffName: staff?.name || '', client: '', service: '', color: staff?.color || 'var(--primary-soft)', pending: true, kind };
-        state.appts.push(temp); upsertLocalPlaceholder(state.date, { ...temp, start: s.toISOString(), end: e.toISOString() }); renderDay();
-        if (kind === 'appt') apiCreateAppointment(startMin, endMin); else apiCreateBlock(startMin, endMin, kind);
+
+        const d = state.date;
+        const s = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); s.setMinutes(startMin);
+        const e = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); e.setMinutes(endMin);
+
+        const staffId = details.staffId || chosenStaffId();
+        const staff = state.staff.find(x => x.id === staffId);
+        const firstName = details.firstName || 'Esporádico';
+        const lastName = details.lastName || '';
+        const clientLabel = (kind === 'appt') ? formatClientName(firstName, lastName, 'Esporádico') : `Bloqueio – ${staff?.name || ''}`;
+
+        const tempId = `temp-${Date.now()}`;
+        const temp = {
+            id: tempId,
+            start: s,
+            end: e,
+            staffId,
+            staffName: staff?.name || '',
+            clientFirstName: (kind === 'appt') ? firstName : '',
+            clientLastName: (kind === 'appt') ? lastName : '',
+            client: clientLabel,
+            service: '',
+            color: (kind === 'appt') ? '#2196f3' : '#90a4ae',
+            pending: true,
+            locked: (kind !== 'appt'),
+            kind
+        };
+        state.appts.push(temp);
+        upsertLocalPlaceholder(state.date, { ...temp, start: s.toISOString(), end: e.toISOString() });
+        renderDay();
+
+        if (kind === 'appt') {
+            apiCreateAppointment(startMin, endMin, tempId, { staffId, firstName, lastName });
+        } else {
+            apiCreateBlock(startMin, endMin, kind, tempId);
+        }
     }
+
     function applyGhost(card, startMin, endMin) { card.style.top = `${minutesToTop(startMin)}px`; card.style.height = `${minutesToHeight(startMin, endMin)}px`; card.dataset.startMin = String(startMin); card.dataset.endMin = String(endMin); }
 
     // ======= FAB =======
     function wireFab() { if (!els.fab) return; els.fab.onclick = () => { const now = new Date(); const nowM = now.getHours() * 60 + now.getMinutes(); const startMin = Math.max(WORK_START(), Math.min(roundToStep(nowM), WORK_END() - config.defaultDurationMin)); openBookingDialog('appt', { startMin, endMin: startMin + config.defaultDurationMin }); }; }
-
     function wireLegacyFabMenu() {
         const menu = document.getElementById('fabMenu'), fabBtn = document.getElementById('fab'); if (!menu || !fabBtn) return;
         fabBtn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('hidden'); };
@@ -748,24 +908,61 @@
         });
     }
 
-    // ======= API agendamentos (sempre envia staffId) =======
-    async function apiCreateAppointment(startMin, endMin) {
-        const d = state.date; const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); start.setMinutes(startMin);
-        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); end.setMinutes(endMin);
-        const body = { StaffId: chosenStaffId(), StartUtc: start.toISOString(), EndUtc: end.toISOString(), Kind: 'appt' };
-        try { await apiSend('POST', '/appointments', body); } catch (e) { console.warn('apiCreateAppointment failed', e); }
+    // ======= API agendamentos =======
+    // 2) SUBSTITUA a função apiCreateAppointment por esta (sem placeholders locais):
+    async function apiCreateAppointment(startMin, endMin, extra = {}) {
+        const d = state.date;
+        const { utcStart, utcEnd } = makeDatesFromMinutes(d, startMin, endMin);
+
+        const fn = (extra.firstName || 'Esporádico').trim();
+        const ln = (extra.lastName || '').trim();
+        const clientName = `${fn}${ln ? ' ' : ''}${ln}` || 'Esporádico';
+
+        const body = {
+            StaffId: extra.staffId || chosenStaffId(),
+            StartUtc: utcStart.toISOString(),   // <<< UTC correto
+            EndUtc: utcEnd.toISOString(),     // <<< UTC correto
+            Kind: 'appt',
+            ClientName: clientName
+        };
+
+        await apiSend('POST', '/appointments', body);
     }
-    async function apiCreateBlock(startMin, endMin, kind) {
-        const d = state.date; const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); start.setMinutes(startMin);
-        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); end.setMinutes(endMin);
-        const body = { StaffId: chosenStaffId(), StartUtc: start.toISOString(), EndUtc: end.toISOString(), Kind: (kind === 'timeoff' ? 'timeoff' : 'block') };
-        try { await apiSend('POST', '/appointments', body); } catch (e) { console.warn('apiCreateBlock failed', e); }
+
+    // 3) SUBSTITUA a função apiCreateBlock por esta (também SEM nada local):
+    async function apiCreateBlock(startMin, endMin, kind, { staffId } = {}) {
+        const d = state.date;
+        const { utcStart, utcEnd } = makeDatesFromMinutes(d, startMin, endMin);
+
+        const body = {
+            StaffId: staffId || chosenStaffId(),
+            StartUtc: utcStart.toISOString(),
+            EndUtc: utcEnd.toISOString(),
+            Kind: (kind === 'timeoff' ? 'timeoff' : 'block'),
+            ClientName: null
+        };
+
+        await apiSend('POST', '/appointments', body);
     }
-    async function apiUpdateAppointment(id, startMin, endMin) {
-        const d = state.date; const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); start.setMinutes(startMin);
-        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0); end.setMinutes(endMin);
-        try { await apiSend('PUT', `/appointments/${encodeURIComponent(id)}`, { StartUtc: start.toISOString(), EndUtc: end.toISOString() }); } catch (e) { console.warn('apiUpdateAppointment failed', e); }
+
+    async function apiUpdateAppointment(id, startMin, endMin, options = {}) {
+        const d = state.date;
+        const { utcStart, utcEnd } = makeDatesFromMinutes(d, startMin, endMin);
+
+        const body = { StartUtc: utcStart.toISOString(), EndUtc: utcEnd.toISOString() };
+        if (options.staffId) body.StaffId = options.staffId;
+
+        if (typeof options.clientName === 'string') {
+            body.ClientName = options.clientName.trim();
+        } else if (options.firstName || options.lastName) {
+            const fn = (options.firstName || 'Esporádico').trim();
+            const ln = (options.lastName || '').trim();
+            body.ClientName = `${fn}${ln ? ' ' : ''}${ln}` || 'Esporádico';
+        }
+
+        await apiSend('PUT', `/appointments/${encodeURIComponent(id)}`, body);
     }
+
     async function apiDeleteAppointment(id) { try { await apiSend('DELETE', `/appointments/${encodeURIComponent(id)}`); } catch (e) { console.warn('apiDeleteAppointment failed', e); } }
 
     // ======= INIT =======
@@ -792,5 +989,19 @@
                   <div class="calendar-error__hint">Verifique sua conexão e tente novamente.</div>
                 </div>`;
         }
+    }
+    function makeDatesFromMinutes(day, startMin, endMin) {
+        const localStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0);
+        localStart.setMinutes(startMin);
+        const localEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0);
+        localEnd.setMinutes(endMin);
+
+        // Constrói as versões UTC preservando o horário local escolhido:
+        const utcStart = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0));
+        utcStart.setUTCMinutes(startMin);
+        const utcEnd = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0));
+        utcEnd.setUTCMinutes(endMin);
+
+        return { localStart, localEnd, utcStart, utcEnd };
     }
 })();

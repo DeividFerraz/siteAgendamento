@@ -122,6 +122,7 @@
         "tags": [
           "siteAgendamento"
         ],
+        "operationId": "GetMe",
         "responses": {
           "200": {
             "description": "Success"
@@ -248,6 +249,38 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/{tenantSlug}/auth/change-password": {
+      "post": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/siteAgendamento.Api.TenantEndpoints.ChangePasswordDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Success"
@@ -568,116 +601,6 @@
           },
           "required": true
         },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/v1/{tenantSlug}/staff/{staffId}/availability": {
-      "get": {
-        "tags": [
-          "siteAgendamento"
-        ],
-        "parameters": [
-          {
-            "name": "tenantSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "staffId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "siteAgendamento"
-        ],
-        "parameters": [
-          {
-            "name": "tenantSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "staffId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/siteAgendamento.Api.StaffEndpoints.StaffAvailabilityDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/v1/{tenantSlug}/me/agenda": {
-      "get": {
-        "tags": [
-          "siteAgendamento"
-        ],
-        "parameters": [
-          {
-            "name": "tenantSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "fromUtc",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "toUtc",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Success"
@@ -1034,69 +957,7 @@
         }
       }
     },
-    "/api/v1/{tenantSlug}/appointments:hold": {
-      "post": {
-        "tags": [
-          "siteAgendamento"
-        ],
-        "parameters": [
-          {
-            "name": "tenantSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.HoldDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/v1/{tenantSlug}/appointments": {
-      "post": {
-        "tags": [
-          "siteAgendamento"
-        ],
-        "parameters": [
-          {
-            "name": "tenantSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.BookDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      },
+    "/api/v1/{tenantSlug}/availability/day": {
       "get": {
         "tags": [
           "siteAgendamento"
@@ -1111,29 +972,19 @@
             }
           },
           {
-            "name": "fromUtc",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "toUtc",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
             "name": "staffId",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1144,8 +995,60 @@
         }
       }
     },
-    "/api/v1/{tenantSlug}/appointments/{id}:reschedule": {
-      "patch": {
+    "/api/v1/{tenantSlug}/appointments": {
+      "get": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "siteAgendamento"
+        ],
+        "parameters": [
+          {
+            "name": "tenantSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.CreateAppointmentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/{tenantSlug}/appointments/{id}": {
+      "put": {
         "tags": [
           "siteAgendamento"
         ],
@@ -1172,7 +1075,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.RescheduleDto"
+                "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.UpdateAppointmentDto"
               }
             }
           },
@@ -1183,51 +1086,8 @@
             "description": "Success"
           }
         }
-      }
-    },
-    "/api/v1/{tenantSlug}/appointments/{id}:cancel": {
-      "post": {
-        "tags": [
-          "siteAgendamento"
-        ],
-        "parameters": [
-          {
-            "name": "tenantSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.CancelDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/v1/{tenantSlug}/appointments/{id}:noshow": {
-      "post": {
+      },
+      "delete": {
         "tags": [
           "siteAgendamento"
         ],
@@ -1418,76 +1278,9 @@
   },
   "components": {
     "schemas": {
-      "siteAgendamento.Api.AppointmentEndpoints.BookDto": {
+      "siteAgendamento.Api.AppointmentEndpoints.CreateAppointmentDto": {
         "type": "object",
         "properties": {
-          "holdToken": {
-            "type": "string",
-            "nullable": true
-          },
-          "clientId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "guest": {
-            "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.GuestDto"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "siteAgendamento.Api.AppointmentEndpoints.CancelDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "siteAgendamento.Api.AppointmentEndpoints.GuestDto": {
-        "type": "object",
-        "properties": {
-          "firstName": {
-            "type": "string",
-            "nullable": true
-          },
-          "lastName": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "phone": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "siteAgendamento.Api.AppointmentEndpoints.HoldDto": {
-        "type": "object",
-        "properties": {
-          "slot": {
-            "$ref": "#/components/schemas/siteAgendamento.Api.AppointmentEndpoints.HoldSlot"
-          }
-        },
-        "additionalProperties": false
-      },
-      "siteAgendamento.Api.AppointmentEndpoints.HoldSlot": {
-        "type": "object",
-        "properties": {
-          "serviceId": {
-            "type": "string",
-            "format": "uuid"
-          },
           "staffId": {
             "type": "string",
             "format": "uuid"
@@ -1499,20 +1292,39 @@
           "endUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "siteAgendamento.Api.AppointmentEndpoints.RescheduleDto": {
+      "siteAgendamento.Api.AppointmentEndpoints.UpdateAppointmentDto": {
         "type": "object",
         "properties": {
           "startUtc": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "nullable": true
           },
           "endUtc": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "nullable": true
+          },
+          "staffId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "clientName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -1843,24 +1655,6 @@
         },
         "additionalProperties": false
       },
-      "siteAgendamento.Api.StaffEndpoints.StaffAvailabilityDto": {
-        "type": "object",
-        "properties": {
-          "dayOfWeek": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "startLocal": {
-            "type": "string",
-            "nullable": true
-          },
-          "endLocal": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "siteAgendamento.Api.StaffEndpoints.StaffSettingsOverrideDto": {
         "type": "object",
         "properties": {
@@ -1950,6 +1744,16 @@
             "nullable": true
           },
           "password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "siteAgendamento.Api.TenantEndpoints.ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "newPassword": {
             "type": "string",
             "nullable": true
           }

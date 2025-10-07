@@ -17,6 +17,28 @@
   },
   {
     "ContainingType": "siteAgendamento.Api.AppointmentEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_0",
+    "RelativePath": "api/v1/{tenantSlug}/appointments",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.AppointmentEndpoints\u002B\u003C\u003Ec",
     "Method": "\u003CMap\u003Eb__0_1",
     "RelativePath": "api/v1/{tenantSlug}/appointments",
     "HttpMethod": "POST",
@@ -30,7 +52,7 @@
       },
       {
         "Name": "dto",
-        "Type": "siteAgendamento.Api.AppointmentEndpoints\u002BBookDto",
+        "Type": "siteAgendamento.Api.AppointmentEndpoints\u002BCreateAppointmentDto",
         "IsRequired": true
       }
     ],
@@ -45,72 +67,8 @@
   {
     "ContainingType": "siteAgendamento.Api.AppointmentEndpoints\u002B\u003C\u003Ec",
     "Method": "\u003CMap\u003Eb__0_2",
-    "RelativePath": "api/v1/{tenantSlug}/appointments",
-    "HttpMethod": "GET",
-    "IsController": false,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "tenantSlug",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "fromUtc",
-        "Type": "System.DateTime",
-        "IsRequired": true
-      },
-      {
-        "Name": "toUtc",
-        "Type": "System.DateTime",
-        "IsRequired": true
-      },
-      {
-        "Name": "staffId",
-        "Type": "System.Nullable\u00601[[System.Guid, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Void",
-        "MediaTypes": [],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "siteAgendamento.Api.AppointmentEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_0",
-    "RelativePath": "api/v1/{tenantSlug}/appointments:hold",
-    "HttpMethod": "POST",
-    "IsController": false,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "tenantSlug",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "dto",
-        "Type": "siteAgendamento.Api.AppointmentEndpoints\u002BHoldDto",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Void",
-        "MediaTypes": [],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "siteAgendamento.Api.AppointmentEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_4",
-    "RelativePath": "api/v1/{tenantSlug}/appointments/{id:guid}:cancel",
-    "HttpMethod": "POST",
+    "RelativePath": "api/v1/{tenantSlug}/appointments/{id:guid}",
+    "HttpMethod": "PUT",
     "IsController": false,
     "Order": 0,
     "Parameters": [
@@ -126,34 +84,7 @@
       },
       {
         "Name": "dto",
-        "Type": "siteAgendamento.Api.AppointmentEndpoints\u002BCancelDto",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Void",
-        "MediaTypes": [],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "siteAgendamento.Api.AppointmentEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_5",
-    "RelativePath": "api/v1/{tenantSlug}/appointments/{id:guid}:noshow",
-    "HttpMethod": "POST",
-    "IsController": false,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "tenantSlug",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "id",
-        "Type": "System.Guid",
+        "Type": "siteAgendamento.Api.AppointmentEndpoints\u002BUpdateAppointmentDto",
         "IsRequired": true
       }
     ],
@@ -168,8 +99,8 @@
   {
     "ContainingType": "siteAgendamento.Api.AppointmentEndpoints\u002B\u003C\u003Ec",
     "Method": "\u003CMap\u003Eb__0_3",
-    "RelativePath": "api/v1/{tenantSlug}/appointments/{id:guid}:reschedule",
-    "HttpMethod": "PATCH",
+    "RelativePath": "api/v1/{tenantSlug}/appointments/{id:guid}",
+    "HttpMethod": "DELETE",
     "IsController": false,
     "Order": 0,
     "Parameters": [
@@ -182,10 +113,32 @@
         "Name": "id",
         "Type": "System.Guid",
         "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.TenantEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_5",
+    "RelativePath": "api/v1/{tenantSlug}/auth/change-password",
+    "HttpMethod": "POST",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
       },
       {
         "Name": "dto",
-        "Type": "siteAgendamento.Api.AppointmentEndpoints\u002BRescheduleDto",
+        "Type": "siteAgendamento.Api.TenantEndpoints\u002BChangePasswordDto",
         "IsRequired": true
       }
     ],
@@ -214,6 +167,38 @@
         "Name": "dto",
         "Type": "siteAgendamento.Api.AuthEndpoints\u002BLoginDto",
         "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "siteAgendamento.Api.AvailabilityEndpoints\u002B\u003C\u003Ec",
+    "Method": "\u003CMap\u003Eb__0_1",
+    "RelativePath": "api/v1/{tenantSlug}/availability/day",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "tenantSlug",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "staffId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "date",
+        "Type": "System.String",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": [
@@ -495,38 +480,6 @@
       {
         "Name": "tenantSlug",
         "Type": "System.String",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Void",
-        "MediaTypes": [],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_12",
-    "RelativePath": "api/v1/{tenantSlug}/me/agenda",
-    "HttpMethod": "GET",
-    "IsController": false,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "tenantSlug",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "fromUtc",
-        "Type": "System.DateTime",
-        "IsRequired": true
-      },
-      {
-        "Name": "toUtc",
-        "Type": "System.DateTime",
         "IsRequired": true
       }
     ],
@@ -923,65 +876,6 @@
   },
   {
     "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_10",
-    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/availability",
-    "HttpMethod": "GET",
-    "IsController": false,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "tenantSlug",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "staffId",
-        "Type": "System.Guid",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Void",
-        "MediaTypes": [],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
-    "Method": "\u003CMap\u003Eb__0_11",
-    "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/availability",
-    "HttpMethod": "POST",
-    "IsController": false,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "tenantSlug",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "staffId",
-        "Type": "System.Guid",
-        "IsRequired": true
-      },
-      {
-        "Name": "dto",
-        "Type": "siteAgendamento.Api.StaffEndpoints\u002BStaffAvailabilityDto",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Void",
-        "MediaTypes": [],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "siteAgendamento.Api.StaffEndpoints\u002B\u003C\u003Ec",
     "Method": "\u003CMap\u003Eb__0_6",
     "RelativePath": "api/v1/{tenantSlug}/staff/{staffId:guid}/branding",
     "HttpMethod": "GET",
@@ -1210,7 +1104,10 @@
         "MediaTypes": [],
         "StatusCode": 200
       }
-    ]
+    ],
+    "EndpointName": "GetMe",
+    "Description": "Retorna usu\u00E1rio, tenantId, role e staff_id",
+    "Summary": "Devolve dados do usu\u00E1rio e v\u00EDnculo no tenant"
   },
   {
     "ContainingType": "siteAgendamento.Api.HealthEndpoints\u002B\u003C\u003Ec",

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using siteAgendamento.Application.Services;
 using siteAgendamento.Domain.Catalog;
@@ -15,7 +16,7 @@ public static class AuthEndpoints
     {
         var g = app.MapGroup("/api/v1");
 
-        // Registrar novo tenant + usuário Owner
+        // Registrar novo tenant + usuário ADM MASTER
         g.MapPost("/auth/register-tenant", async (
             [FromBody] RegisterTenantDto dto,
             AppDbContext db,
@@ -34,8 +35,6 @@ public static class AuthEndpoints
                     SlotGranularityMinutes = dto.Settings?.SlotGranularityMinutes ?? 10,
                     AllowAnonymousAppointments = dto.Settings?.AllowAnonymousAppointments ?? false,
                     CancellationWindowHours = dto.Settings?.CancellationWindowHours ?? 24,
-
-                    // NOVOS
                     Timezone = dto.Settings?.Timezone ?? "America/Sao_Paulo",
                     BusinessDays = string.Join(",", dto.Settings?.BusinessDays ?? new[] { "1", "2", "3", "4", "5" }),
                     OpenTime = dto.Settings?.OpenTime ?? "09:00",
@@ -57,27 +56,29 @@ public static class AuthEndpoints
                 Email = dto.Admin.Email,
                 PasswordHash = hasher.Hash(dto.Admin.Password ?? Guid.NewGuid().ToString("N"))
             };
+
             db.Users.Add(user);
             db.Tenants.Add(tenant);
             await db.SaveChangesAsync();
 
-            db.UserTenants.Add(new UserTenant { UserId = user.Id, TenantId = tenant.Id, Role = "Owner" });
+            // **adm master** por padrão no vínculo ao tenant
+            db.UserTenants.Add(new UserTenant { UserId = user.Id, TenantId = tenant.Id, Role = "adm master" });
 
-            // Cria Staff para o Owner (opcional). Se não quiser, remova:
-            var staff = new Staff { TenantId = tenant.Id, UserId = user.Id, DisplayName = dto.Admin.Name };
+            // cria staff para o adm master
+            var staff = new Staff { TenantId = tenant.Id, UserId = user.Id, DisplayName = dto.Admin.Name, Role = "admin" };
             db.Staffs.Add(staff);
             await db.SaveChangesAsync();
 
-            // vincula staff ao UserTenant
             var ut = await db.UserTenants.FirstAsync(x => x.UserId == user.Id && x.TenantId == tenant.Id);
             ut.StaffId = staff.Id;
             await db.SaveChangesAsync();
 
+            // serviço padrão
             var defaultService = new Service
             {
                 TenantId = tenant.Id,
                 Name = "Serviço padrão",
-                DurationMin = dto.Settings?.DefaultAppointmentMinutes ?? 60,      // pega do payload novo
+                DurationMin = tenant.Settings.DefaultAppointmentMinutes,
                 BufferBeforeMin = 0,
                 BufferAfterMin = 0,
                 Capacity = 1,
@@ -86,17 +87,14 @@ public static class AuthEndpoints
             db.Services.Add(defaultService);
             await db.SaveChangesAsync();
 
-            var token = jwt.CreateToken(user.Id, user.Email, tenant.Id, "Owner", staff.Id);
-            return Results.Ok(new { access_token = token, tenantId = tenant.Id, tenantSlug = tenant.Slug });
+            var token = jwt.CreateToken(user.Id, user.Email, tenant.Id, "adm master", staff.Id);
+            return Results.Ok(new { access_token = token, role = "adm master", staff_id = staff.Id, tenantId = tenant.Id, tenantSlug = tenant.Slug });
         });
 
-        // Login com tenant no path
+        // Login por tenant
         g.MapPost("/{tenantSlug}/auth/login", async (
-            string tenantSlug,
-            [FromBody] LoginDto dto,
-            AppDbContext db,
-            PasswordHasherService hasher,
-            JwtTokenService jwt) =>
+            string tenantSlug, [FromBody] LoginDto dto,
+            AppDbContext db, PasswordHasherService hasher, JwtTokenService jwt) =>
         {
             var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == tenantSlug && t.Active);
             if (tenant == null) return Results.NotFound("Empresa não encontrada.");
@@ -108,14 +106,12 @@ public static class AuthEndpoints
             var ut = await db.UserTenants.FirstOrDefaultAsync(x => x.UserId == user.Id && x.TenantId == tenant.Id);
             if (ut == null) return Results.Unauthorized();
 
-            Guid? staffId = ut.StaffId;
-            var token = jwt.CreateToken(user.Id, user.Email, tenant.Id, ut.Role, staffId);
-            return Results.Ok(new { access_token = token, role = ut.Role, staff_id = staffId, tenant_id = tenant.Id });
+            var token = jwt.CreateToken(user.Id, user.Email, tenant.Id, ut.Role, ut.StaffId);
+            return Results.Ok(new { access_token = token, role = ut.Role, staff_id = ut.StaffId, tenant_id = tenant.Id });
         });
 
-        // Login global (recebe tenant no body)
-        g.MapPost("/auth/login", async ([FromBody] GlobalLoginDto dto, AppDbContext db,
-            PasswordHasherService hasher, JwtTokenService jwt) =>
+        // Login global
+        g.MapPost("/auth/login", async ([FromBody] GlobalLoginDto dto, AppDbContext db, PasswordHasherService hasher, JwtTokenService jwt) =>
         {
             var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == dto.Tenant || t.Name == dto.Tenant);
             if (tenant == null) return Results.NotFound("Empresa não encontrada.");
@@ -135,14 +131,14 @@ public static class AuthEndpoints
         {
             var sub = http.User.FindFirst("sub")?.Value;
             var tenantIdStr = http.User.FindFirst("tenant_id")?.Value;
-            if (sub == null || tenantIdStr == null) return Results.Unauthorized();
+            if (sub is null || tenantIdStr is null) return Results.Unauthorized();
 
             var userId = Guid.Parse(sub);
             var tenantId = Guid.Parse(tenantIdStr);
 
             var user = await db.Users.FindAsync(userId);
             var ut = await db.UserTenants.FirstOrDefaultAsync(x => x.UserId == userId && x.TenantId == tenantId);
-            if (user == null || ut == null) return Results.Unauthorized();
+            if (user is null || ut is null) return Results.Unauthorized();
 
             return Results.Ok(new
             {
@@ -151,27 +147,19 @@ public static class AuthEndpoints
                 role = ut.Role,
                 staff_id = ut.StaffId
             });
-        }).RequireAuthorization();
+        })
+        .RequireAuthorization()
+        .WithName("GetMe")
+        .WithDisplayName("Get current user")
+        .WithSummary("Devolve dados do usuário e vínculo no tenant")
+        .WithDescription("Retorna usuário, tenantId, role e staff_id");
     }
 
-    public record RegisterTenantDto(
-                    string Slug,
-                    string CompanyName,
-                    AdminDto Admin,
-                    BrandingDto? Branding,
-                    SettingsDto? Settings);
+    // DTOs
+    public record RegisterTenantDto(string Slug, string CompanyName, AdminDto Admin, BrandingDto? Branding, SettingsDto? Settings);
     public record AdminDto(string Name, string Email, string? Password);
     public record BrandingDto(string? LogoUrl, string? Primary, string? Secondary, string? Tertiary);
-    public record SettingsDto(
-        int? SlotGranularityMinutes, 
-        bool? AllowAnonymousAppointments, 
-        int? CancellationWindowHours, 
-        string? Timezone,                  // ex: "America/Sao_Paulo"
-        string[]? BusinessDays,            // ex: ["1","2","3","4","5"]  // 0=Dom .. 6=Sáb
-        string? OpenTime,                  // "09:00"
-        string? CloseTime,                 // "18:00"
-        int? DefaultAppointmentMinutes
-        );
+    public record SettingsDto(int? SlotGranularityMinutes, bool? AllowAnonymousAppointments, int? CancellationWindowHours, string? Timezone, string[]? BusinessDays, string? OpenTime, string? CloseTime, int? DefaultAppointmentMinutes);
     public record LoginDto(string Email, string Password);
     public record GlobalLoginDto(string Tenant, string Email, string Password);
 }

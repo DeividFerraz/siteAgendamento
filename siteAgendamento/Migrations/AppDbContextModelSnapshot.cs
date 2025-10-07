@@ -31,6 +31,9 @@ namespace siteAgendamento.Migrations
                     b.Property<Guid?>("ClientId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ClientName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ClientType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -45,6 +48,10 @@ namespace siteAgendamento.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("GuestContactJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Notes")

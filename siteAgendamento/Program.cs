@@ -12,11 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
-
 // JWT
 var jwt = builder.Configuration.GetSection("Jwt");
 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
+
 builder.Services
   .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
   .AddJwtBearer(o =>
@@ -29,18 +28,25 @@ builder.Services
           ValidateLifetime = true,
           ValidIssuer = jwt["Issuer"],
           ValidAudience = jwt["Audience"],
+          RoleClaimType = "role",
           IssuerSigningKey = key
       };
   });
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("ManageTenant", p => p.RequireRole("Owner", "Admin"));
-    options.AddPolicy("ManageAllCalendars", p => p.RequireRole("Owner", "Admin", "Receptionist"));
-    // Para "ManageOwnCalendar" validaremos no endpoint (checa claim staff_id).
+    // **Empresa (somente adm master)**
+    options.AddPolicy("AdminMasterOnly", p => p.RequireRole("adm master"));
+    options.AddPolicy("ManageTenant", p => p.RequireRole("adm master"));
+
+    // **Ver/gerenciar TODAS as agendas (adm master + admin)**
+    options.AddPolicy("ManageAllCalendars", p => p.RequireRole("adm master", "admin"));
+
+    // **Agendar/editar a própria agenda (qualquer usuário autenticado)**
+    options.AddPolicy("ManageOwnCalendar", p => p.RequireAuthenticatedUser());
 });
 
-// Services de aplicação
+// Services
 builder.Services.AddSingleton(new JwtTokenService(jwt["Issuer"]!, jwt["Audience"]!, key, int.Parse(jwt["ExpiresMinutes"]!)));
 builder.Services.AddScoped<PasswordHasherService>();
 builder.Services.AddScoped<AvailabilityService>();
@@ -55,7 +61,6 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 app.MapGet("/", () => Results.Redirect("/login.html"));
-
 app.UseStaticFiles();
 
 // Swagger
@@ -65,7 +70,7 @@ app.UseSwaggerUI();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Mapear módulos (organizados por arquivo)
+// Módulos
 AuthEndpoints.Map(app);
 TenantEndpoints.Map(app);
 StaffEndpoints.Map(app);

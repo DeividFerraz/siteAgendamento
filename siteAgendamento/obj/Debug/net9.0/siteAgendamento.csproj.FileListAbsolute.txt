@@ -165,8 +165,6 @@ C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\co
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\ewtiuwo73c-ab3ikjoomk.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\0q144n3w2z-c2tiyv64ts.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\w1kgv3i1zk-61n19gt1b8.gz
-C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\0o7xr8fca7-o1w9s65qgs.gz
-C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\yf4ebong5a-fkiltn62n4.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\uvucc4xkdq-47b5gunoo6.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\lj9y7jafc2-agp80tu62r.gz
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\n83r57h5g8-st1cbwfwo5.gz
@@ -238,3 +236,5 @@ C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\re
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\siteAgendamento.pdb
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\siteAgendamento.genruntimeconfig.cache
 C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\ref\siteAgendamento.dll
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\yf4ebong5a-yvcs46ojeq.gz
+C:\Users\deivi\source\repoSistemaAgendamento\siteAgendamento\obj\Debug\net9.0\compressed\0o7xr8fca7-t61yihs11c.gz
